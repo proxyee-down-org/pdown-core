@@ -17,6 +17,7 @@ Connection | keep-alive
 User-Agent | Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.75 Safari/537.36
 Accept | text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
 Referer | {host}
+
 We can customize the request header,when overlapping with the default value, the default request header is overwritten.  
 *{host} is Domain name parsed from url*
 #### content
@@ -35,6 +36,7 @@ timeout | 30(S) | If no response during this time,will re-initiate connection.
 retryCount | 5 | All connection download exceptions exceed this times,will be stop download.
 autoRename | false | Automatic rename when checking to download directory with duplicate file.
 speedLimit | 0(B/S) | Download speed limit.
+
 ## demo
 ```
 //Download a file with URL
