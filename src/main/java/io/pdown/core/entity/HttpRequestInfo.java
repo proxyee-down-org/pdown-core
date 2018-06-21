@@ -23,18 +23,18 @@ public class HttpRequestInfo implements HttpRequest, Serializable {
   public HttpRequestInfo() {
   }
 
-  public HttpRequestInfo(HttpVer version, String method, String uri) {
+  public HttpRequestInfo(HttpVer version, HttpMethod method, String uri) {
     this(version, method, uri, null, null);
   }
 
-  public HttpRequestInfo(String method, String uri) {
+  public HttpRequestInfo(HttpMethod method, String uri) {
     this(HttpVer.HTTP_1_1, method, uri);
   }
 
-  public HttpRequestInfo(HttpVer version, String method, String uri,
+  public HttpRequestInfo(HttpVer version, HttpMethod method, String uri,
       HttpHeadsInfo headers, byte[] content) {
     this.version = version;
-    this.method = method;
+    this.method = method.toString();
     this.uri = uri;
     this.headers = headers;
     this.content = content;
@@ -194,7 +194,7 @@ public class HttpRequestInfo implements HttpRequest, Serializable {
       for (Entry<String, String> entry : httpRequest.headers()) {
         httpHeadsInfo.set(entry.getKey(), entry.getValue());
       }
-      return new HttpRequestInfo(version, httpRequest.method().toString(), httpRequest.uri(),
+      return new HttpRequestInfo(version, httpRequest.method(), httpRequest.uri(),
           httpHeadsInfo, null);
     }
     return httpRequest;

@@ -299,8 +299,7 @@ public class HttpDownUtil {
       content = body.getBytes();
       headsInfo.add("Content-Length", content.length);
     }
-    HttpRequestInfo requestInfo = new HttpRequestInfo(HttpVer.HTTP_1_1, HttpMethod.GET.toString(),
-        url, headsInfo, content);
+    HttpRequestInfo requestInfo = new HttpRequestInfo(HttpVer.HTTP_1_1, HttpMethod.GET,url, headsInfo, content);
     requestInfo.setRequestProto(ProtoUtil.getRequestProto(requestInfo));
     return requestInfo;
   }

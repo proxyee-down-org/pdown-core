@@ -1,13 +1,13 @@
 # HTTP high speed downloader
 Using java NIO,fast down and easy to customize.
-## guide
-### create download task  
+## Guide
+### Create download task  
   To create a download task, need to construct a request and a config.
-### request  
-Using HttpRequestInfo.java to build a request.
-#### method
+### Request  
+Before downloading, must have a HTTP request.
+#### Method
 The default method is GET,We can also use POST,PUT...
-#### heads
+#### Heads
 The default request header refers to the following table.
   
 key | value
@@ -18,12 +18,12 @@ User-Agent | Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML,
 Accept | text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
 Referer | {host}
 
-We can customize the request header,when overlapping with the default value, the default request header is overwritten.  
+We can customize the request header,when overriding the default value, the default request header will be replaced.  
 *{host} is Domain name parsed from url*
-#### content
+#### Content
 Set the request body,only support text format.
-### config
-Using HttpDownConfigInfo.java to build a config.
+### Config
+Download options.
 
 field | default | desc 
 ---|---|---
@@ -37,7 +37,7 @@ retryCount | 5 | All connection download exceptions exceed this times,will be st
 autoRename | false | Automatic rename when checking to download directory with duplicate file.
 speedLimit | 0(B/S) | Download speed limit.
 
-## demo
+## Demo
 ```
 //Download a file with URL
 HttpDownBootstrap.builder("http://127.0.0.1/static/test.zip")
@@ -45,7 +45,7 @@ HttpDownBootstrap.builder("http://127.0.0.1/static/test.zip")
           .startDown();
 //Download a file with a custom request
 HttpDownBootstrap.builder()
-          .request(new HttpRequestInfo(HttpMethod.GET.toString(), "http://127.0.0.1/static/test.zip"))
+          .request(new HttpRequestInfo(HttpMethod.GET, "http://127.0.0.1/static/test.zip"))
           .downConfig(new HttpDownConfigInfo().setSupportRange(true).setTotalSize(1024))
           .build()
           .startDown();
@@ -65,17 +65,17 @@ HttpDownBootstrap.builder("http://127.0.0.1/static/test.zip")
           .build()
           .startDown();
 ```
-## build
+## Build
 ```
 git clone git@github.com:proxyee-down-org/pdown-core.git
 mvn clean package -Pexec
 ```
-## run
+## Run
 
 ```
 #See help
-java -jar pdown -h
+java -jar pdown.jar -h
 #Download with default configuration
-java -jar pdown http://127.0.0.1/static/test.zip
+java -jar pdown.jar http://127.0.0.1/static/test.zip
 ```
 
