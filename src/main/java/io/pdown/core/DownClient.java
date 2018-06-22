@@ -72,7 +72,7 @@ public class DownClient {
       formatter.printHelp("parse error:", options);
       return;
     }
-    if (args[0].trim().indexOf("-") == -1 && !args[0].equals("-h") && !args[0].equals("--help")) {
+    if (args[0].trim().charAt(0) != '-' && !args[0].equals("-h") && !args[0].equals("--help")) {
       args[0] = "-U=" + args[0];
     }
     CommandLineParser parser = new DefaultParser();
