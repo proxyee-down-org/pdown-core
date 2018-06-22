@@ -3,11 +3,11 @@ package io.pdown.core.dispatch;
 import io.pdown.core.entity.HttpDownConfigInfo;
 import io.pdown.core.entity.HttpRequestInfo;
 import io.pdown.core.entity.TaskInfo;
+import io.pdown.core.util.ByteUtil;
 
 public class ConsoleHttpDownCallback extends HttpDownCallback {
 
   private int progressWidth = 20;
-  private int lineMaxWidth = 0;
 
   public ConsoleHttpDownCallback() {
   }
@@ -52,15 +52,7 @@ public class ConsoleHttpDownCallback extends HttpDownCallback {
         sb.append("□");
       }
     }
-    sb.append("]" + String.format("%.2f", rate * 100) + "\t%\t" + (speed / 1024) + "KB/S");
-    //windows console bug
-    if (sb.length() > lineMaxWidth) {
-      lineMaxWidth = sb.length();
-    } else {
-      for (int i = 0; i < lineMaxWidth - sb.length(); i++) {
-        sb.append(" ");
-      }
-    }
+    sb.append("] " + String.format("%.2f", rate * 100) + "%    " + String.format("%8s", ByteUtil.byteFormat(speed)) + "/S");
     System.out.print(sb.toString());
   }
 }
