@@ -72,9 +72,10 @@ cd pdown-core
 mvn clean package -Pexec
 ```
 ## Run
-
 ```
-java -jar pdown.jar -h  #See help
-java -jar pdown.jar http://127.0.0.1/static/test.zip  #Download with default configuration
+#See help
+java -jar pdown.jar -h
+#Download with default configuration
+java -jar pdown.jar http://127.0.0.1/static/test.zip
 ```
 
