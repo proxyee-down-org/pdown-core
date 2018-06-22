@@ -26,7 +26,6 @@ public class DownClient {
     Options options = new Options();
     options.addOption(Option.builder("U")
         .longOpt("url")
-        .required()
         .hasArg()
         .desc("Set the request URL.")
         .build());
@@ -65,19 +64,22 @@ public class DownClient {
         .hasArg()
         .desc("[protocol://]host:port Set proxy,support HTTP,SOCKS4,SOCKS5.")
         .build());
-    options.addOption("h", "help", false, "proxyee down client help.");
+    options.addOption(Option.builder("h")
+        .longOpt("help")
+        .desc("proxyee down client help.")
+        .build());
     if (args == null || args.length == 0) {
       formatter.printHelp("parse error:", options);
       return;
     }
-    if (args.length == 1 && !args[0].equals("-h") && !args[0].equals("--help")) {
+    if (args[0].trim().indexOf("-") == -1 && !args[0].equals("-h") && !args[0].equals("--help")) {
       args[0] = "-U=" + args[0];
     }
     CommandLineParser parser = new DefaultParser();
     try {
-      CommandLine line = parser.parse(options, args, true);
+      CommandLine line = parser.parse(options, args);
       if (line.hasOption("h")) {
-        formatter.printHelp("pdDown", options);
+        formatter.printHelp("pdDown <url> <options>", options);
         return;
       }
       URLHttpDownBootstrapBuilder builder = HttpDownBootstrap.builder(line.getOptionValue("U"));

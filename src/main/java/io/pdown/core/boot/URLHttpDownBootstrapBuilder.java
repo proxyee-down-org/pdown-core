@@ -58,7 +58,9 @@ public class URLHttpDownBootstrapBuilder extends HttpDownBootstrapBuilder {
         getDownConfig().setTotalSize(parseDownConfig.getTotalSize());
       }
     } catch (Exception e) {
-      getLoopGroup().shutdownGracefully();
+      if (getLoopGroup() != null) {
+        getLoopGroup().shutdownGracefully();
+      }
       throw new BootstrapBuildException("build URLHttpDownBootstrap error", e);
     }
     return super.build();
