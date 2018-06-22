@@ -42,12 +42,9 @@ import java.nio.file.StandardOpenOption;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import lombok.Getter;
-import lombok.ToString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@ToString
 public class HttpDownBootstrap implements Serializable {
 
   private static final long serialVersionUID = 7265797940598817922L;
@@ -56,14 +53,10 @@ public class HttpDownBootstrap implements Serializable {
   private static final long SIZE_1MB = 1024 * 1024L;
   private static final double TIME_1S_NANO = (double) TimeUnit.SECONDS.toNanos(1);
 
-  @Getter
   private HttpRequestInfo request;
-  @Getter
-  protected HttpDownConfigInfo downConfig;
-  @Getter
+  private HttpDownConfigInfo downConfig;
   private ProxyConfig proxyConfig;
-  @Getter
-  protected TaskInfo taskInfo;
+  private TaskInfo taskInfo;
 
   protected transient NioEventLoopGroup loopGroup;
   protected transient HttpDownCallback callback;
@@ -81,6 +74,22 @@ public class HttpDownBootstrap implements Serializable {
     this.taskInfo = taskInfo;
     this.loopGroup = loopGroup;
     this.callback = callback;
+  }
+
+  protected HttpRequestInfo getRequest() {
+    return request;
+  }
+
+  protected HttpDownConfigInfo getDownConfig() {
+    return downConfig;
+  }
+
+  protected ProxyConfig getProxyConfig() {
+    return proxyConfig;
+  }
+
+  protected TaskInfo getTaskInfo() {
+    return taskInfo;
   }
 
   /**
@@ -360,6 +369,17 @@ public class HttpDownBootstrap implements Serializable {
     }
   }
 
+  @Override
+  public String toString() {
+    return "HttpDownBootstrap{" +
+        "request=" + request +
+        ", downConfig=" + downConfig +
+        ", proxyConfig=" + proxyConfig +
+        ", taskInfo=" + taskInfo +
+        ", callback=" + callback.getClass() +
+        '}';
+  }
+
   public static HttpDownBootstrapBuilder builder() {
     return new HttpDownBootstrapBuilder();
   }
@@ -466,6 +486,7 @@ public class HttpDownBootstrap implements Serializable {
                 synchronized (chunkInfo) {
                   chunkInfo.setDownSize(chunkInfo.getDownSize() + size);
                   connectInfo.setDownSize(connectInfo.getDownSize() + size);
+                  taskInfo.setDownSize(taskInfo.getDownSize() + size);
                 }
                 if (downConfig.getSpeedLimit() > 0) {
                   long time = System.nanoTime();

@@ -68,14 +68,13 @@ HttpDownBootstrap.builder("http://127.0.0.1/static/test.zip")
 ## Build
 ```
 git clone git@github.com:proxyee-down-org/pdown-core.git
+cd pdown-core
 mvn clean package -Pexec
 ```
 ## Run
 
 ```
-#See help
-java -jar pdown.jar -h
-#Download with default configuration
-java -jar pdown.jar http://127.0.0.1/static/test.zip
+java -jar pdown.jar -h  #See help
+java -jar pdown.jar http://127.0.0.1/static/test.zip  #Download with default configuration
 ```
 

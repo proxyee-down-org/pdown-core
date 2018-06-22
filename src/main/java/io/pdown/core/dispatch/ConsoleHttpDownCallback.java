@@ -3,12 +3,8 @@ package io.pdown.core.dispatch;
 import io.pdown.core.entity.HttpDownConfigInfo;
 import io.pdown.core.entity.HttpRequestInfo;
 import io.pdown.core.entity.TaskInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ConsoleHttpDownCallback extends HttpDownCallback {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(ConsoleHttpDownCallback.class);
 
   private int progressWidth = 20;
   private int lineMaxWidth = 0;
@@ -56,7 +52,7 @@ public class ConsoleHttpDownCallback extends HttpDownCallback {
         sb.append("□");
       }
     }
-    sb.append("]" + String.format("%.2f", rate * 100) + "%\t" + (speed / 1024) + "KB/S");
+    sb.append("]" + String.format("%.2f", rate * 100) + "\t%\t" + (speed / 1024) + "KB/S");
     //windows console bug
     if (sb.length() > lineMaxWidth) {
       lineMaxWidth = sb.length();

@@ -1,12 +1,7 @@
 package io.pdown.core.util;
 
-import java.awt.Desktop;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.ServerSocket;
-import java.net.URI;
 
 public class OsUtil {
 
@@ -59,41 +54,6 @@ public class OsUtil {
       }
     }
     return ret;
-  }
-
-  public static void openBrowse(String url) throws Exception {
-    Desktop desktop = Desktop.getDesktop();
-    boolean flag = Desktop.isDesktopSupported() && desktop.isSupported(Desktop.Action.BROWSE);
-    if (flag) {
-      try {
-        URI uri = new URI(url);
-        desktop.browse(uri);
-      } catch (Exception e) {
-        throw new Exception("can't open browse", e);
-      }
-    } else {
-      throw new Exception("don't support browse");
-    }
-  }
-
-  public static void execFile(InputStream inputStream, String filePath) throws IOException {
-    File file = new File(filePath);
-    if (!file.exists()) {
-      try (
-          FileOutputStream fos = new FileOutputStream(file)
-      ) {
-        byte[] bts = new byte[8192];
-        int len;
-        while ((len = inputStream.read(bts)) != -1) {
-          fos.write(bts, 0, len);
-        }
-      } finally {
-        if (inputStream != null) {
-          inputStream.close();
-        }
-      }
-    }
-    Desktop.getDesktop().open(file);
   }
 
   private static final String OS = System.getProperty("os.name").toLowerCase();
