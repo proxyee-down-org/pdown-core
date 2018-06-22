@@ -16,6 +16,7 @@ import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.LastHttpContent;
+import io.netty.handler.timeout.ReadTimeoutException;
 import io.netty.resolver.NoopAddressResolverGroup;
 import io.netty.util.ReferenceCountUtil;
 import io.pdown.core.constant.HttpDownStatus;
@@ -630,7 +631,9 @@ public class HttpDownBootstrap implements Serializable {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-          LOGGER.error("down onChunkError:", cause);
+          if (!(cause instanceof IOException) && !(cause instanceof ReadTimeoutException)) {
+            LOGGER.error("down onChunkError:", cause);
+          }
           normalClose = true;
           close(connectInfo);
           reConnect(connectInfo);
