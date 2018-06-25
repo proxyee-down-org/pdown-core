@@ -22,6 +22,9 @@ We can customize the request header,when overriding the default value, the defau
 *{host} is Domain name parsed from url*
 #### Content
 Set the request body,only support text format.
+### Response
+Default will request once for response related information,such as support HTTP 206,Content-Length,attach name.  
+If know response Content-Length and name,can create a task directly, without spending a request to resolve the task name and size.
 ### Config
 Download options.
 
@@ -43,10 +46,10 @@ speedLimit | 0(B/S) | Download speed limit.
 HttpDownBootstrap.builder("http://127.0.0.1/static/test.zip")
           .build()
           .startDown();
-//Download a file with a custom request
+//Download a file with a custom request and response
 HttpDownBootstrap.builder()
           .request(new HttpRequestInfo(HttpMethod.GET, "http://127.0.0.1/static/test.zip"))
-          .downConfig(new HttpDownConfigInfo().setSupportRange(true).setTotalSize(1024))
+          .response(new HttpResponseInfo(2048,true))
           .build()
           .startDown();
 //Set download config
@@ -76,6 +79,6 @@ mvn clean package -Pexec
 #See help
 java -jar pdown.jar -h
 #Download with default configuration
-java -jar pdown.jar http://127.0.0.1/static/test.zip
+java -jar pdown.jar "http://127.0.0.1/static/test.zip"
 ```
 

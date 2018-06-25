@@ -1,33 +1,31 @@
 package io.pdown.core.dispatch;
 
+import io.pdown.core.boot.HttpDownBootstrap;
 import io.pdown.core.entity.ChunkInfo;
-import io.pdown.core.entity.HttpDownConfigInfo;
-import io.pdown.core.entity.HttpRequestInfo;
-import io.pdown.core.entity.TaskInfo;
 
 public class HttpDownCallback {
 
-  public void onStart(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig) {
+  public void onStart(HttpDownBootstrap httpDownBootstrap) {
   }
 
-  public void onProgress(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
+  public void onProgress(HttpDownBootstrap httpDownBootstrap) {
   }
 
-  public void onPause(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
+  public void onPause(HttpDownBootstrap httpDownBootstrap) {
   }
 
-  public void onContinue(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
+  public void onContinue(HttpDownBootstrap httpDownBootstrap) {
   }
 
-  public void onChunkError(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo, ChunkInfo chunkInfo) {
+  public void onChunkError(HttpDownBootstrap httpDownBootstrap, ChunkInfo chunkInfo) {
   }
 
-  public void onError(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
+  public void onError(HttpDownBootstrap httpDownBootstrap) {
   }
 
-  public void onChunkDone(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo, ChunkInfo chunkInfo) {
+  public void onChunkDone(HttpDownBootstrap httpDownBootstrap, ChunkInfo chunkInfo) {
   }
 
-  public void onDone(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
+  public void onDone(HttpDownBootstrap httpDownBootstrap) {
   }
 }

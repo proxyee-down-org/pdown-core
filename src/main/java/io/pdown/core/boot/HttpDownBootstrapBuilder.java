@@ -5,6 +5,7 @@ import io.netty.util.internal.StringUtil;
 import io.pdown.core.dispatch.HttpDownCallback;
 import io.pdown.core.entity.HttpDownConfigInfo;
 import io.pdown.core.entity.HttpRequestInfo;
+import io.pdown.core.entity.HttpResponseInfo;
 import io.pdown.core.entity.TaskInfo;
 import io.pdown.core.exception.BootstrapBuildException;
 import io.pdown.core.proxy.ProxyConfig;
@@ -16,6 +17,7 @@ import io.pdown.core.util.PathUtil;
 public class HttpDownBootstrapBuilder {
 
   private HttpRequestInfo request;
+  private HttpResponseInfo response;
   private HttpDownConfigInfo downConfig;
   private ProxyConfig proxyConfig;
   private TaskInfo taskInfo;
@@ -27,6 +29,14 @@ public class HttpDownBootstrapBuilder {
    */
   public HttpDownBootstrapBuilder request(HttpRequestInfo request) {
     this.request = request;
+    return this;
+  }
+
+  /**
+   * 任务http响应信息 默认值：null
+   */
+  public HttpDownBootstrapBuilder response(HttpResponseInfo response) {
+    this.response = response;
     return this;
   }
 
@@ -74,6 +84,10 @@ public class HttpDownBootstrapBuilder {
     return request;
   }
 
+  protected HttpResponseInfo getResponse() {
+    return response;
+  }
+
   protected HttpDownConfigInfo getDownConfig() {
     return downConfig;
   }
@@ -96,6 +110,12 @@ public class HttpDownBootstrapBuilder {
 
   public HttpDownBootstrap build() {
     try {
+      if (request == null) {
+        throw new BootstrapBuildException("request Can not be empty.");
+      }
+      if (response == null) {
+        throw new BootstrapBuildException("response Can not be empty.");
+      }
       if (loopGroup == null) {
         loopGroup = new NioEventLoopGroup(1);
       }
@@ -111,10 +131,10 @@ public class HttpDownBootstrapBuilder {
       if (downConfig.getRetryCount() <= 0) {
         downConfig.setRetryCount(5);
       }
-      if (!downConfig.isSupportRange() || downConfig.getConnections() <= 0) {
+      if (!response.isSupportRange() || downConfig.getConnections() <= 0) {
         downConfig.setConnections(16);
       }
-      return new HttpDownBootstrap(request, downConfig, proxyConfig, taskInfo, loopGroup, callback);
+      return new HttpDownBootstrap(request, response, downConfig, proxyConfig, taskInfo, loopGroup, callback);
     } catch (Exception e) {
       throw new BootstrapBuildException("build HttpDownBootstrap error", e);
     }

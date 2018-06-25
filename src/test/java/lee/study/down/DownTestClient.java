@@ -107,26 +107,21 @@ public class DownTestClient {
     HttpDownBootstrap httpDownBootstrap = HttpDownBootstrap.builder("http://127.0.0.1:" + port)
         .downConfig(new HttpDownConfigInfo().setFilePath(TEST_PATH)
             .setAutoRename(true)
-            .setConnections(5)
+            .setConnections(connections)
             .setTimeout(5)
             .setSpeedLimit(speedLimit))
         .callback(new ConsoleHttpDownCallback() {
 
-         /* @Override
-          public void onProgress(HttpRequestInfo requestInfo,HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
-            System.out.println("speed:" + taskInfo.getSpeed());
-          }*/
-
           @Override
-          public void onDone(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
-            System.out.println("final speed:" + taskInfo.getSpeed());
+          public void onDone(HttpDownBootstrap httpDownBootstrap) {
+            System.out.println("");
             String sourceMd5 = getMd5ByFile(new File(TEST_BUILD_FILE));
-            String downMd5 = getMd5ByFile(new File(HttpDownUtil.getTaskFilePath(downConfig)));
+            String downMd5 = getMd5ByFile(new File(HttpDownUtil.getTaskFilePath(httpDownBootstrap)));
             if (sourceMd5.equals(downMd5)) {
               succ.set(true);
             }
             try {
-              FileUtil.deleteIfExists(HttpDownUtil.getTaskFilePath(downConfig));
+              FileUtil.deleteIfExists(HttpDownUtil.getTaskFilePath(httpDownBootstrap));
             } catch (IOException e) {
               e.printStackTrace();
             }
@@ -134,17 +129,17 @@ public class DownTestClient {
           }
 
           @Override
-          public void onError(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
+          public void onError(HttpDownBootstrap httpDownBootstrap) {
             countDownLatch.countDown();
           }
 
           @Override
-          public void onPause(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
+          public void onPause(HttpDownBootstrap httpDownBootstrap) {
             System.out.println("onPause");
           }
 
           @Override
-          public void onContinue(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
+          public void onContinue(HttpDownBootstrap httpDownBootstrap) {
             System.out.println("onContinue");
           }
         })

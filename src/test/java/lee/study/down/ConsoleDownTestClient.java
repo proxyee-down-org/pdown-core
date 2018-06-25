@@ -32,14 +32,14 @@ public class ConsoleDownTestClient {
             .setSpeedLimit(5 * 1024 * 1024))
         .callback(new ConsoleHttpDownCallback(){
           @Override
-          public void onError(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
-            super.onError(requestInfo, downConfig, taskInfo);
+          public void onError(HttpDownBootstrap httpDownBootstrap) {
+            super.onError(httpDownBootstrap);
             System.exit(0);
           }
 
           @Override
-          public void onDone(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
-            super.onDone(requestInfo, downConfig, taskInfo);
+          public void onDone(HttpDownBootstrap httpDownBootstrap) {
+            super.onDone(httpDownBootstrap);
             System.exit(0);
           }
         }).build().startDown();

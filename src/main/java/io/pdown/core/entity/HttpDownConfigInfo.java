@@ -4,26 +4,13 @@ import java.io.Serializable;
 
 public class HttpDownConfigInfo implements Serializable {
 
-  private static final long serialVersionUID = -6077223876890481907L;
-  private String id;
+  private static final long serialVersionUID = -69564667309038578L;
   private String filePath;
-  private String fileName;
-  private long totalSize;
-  private boolean supportRange;
   private int connections;
   private int timeout;
   private int retryCount;
   private boolean autoRename;
   private long speedLimit;
-
-  public String getId() {
-    return id;
-  }
-
-  public HttpDownConfigInfo setId(String id) {
-    this.id = id;
-    return this;
-  }
 
   public String getFilePath() {
     return filePath;
@@ -31,33 +18,6 @@ public class HttpDownConfigInfo implements Serializable {
 
   public HttpDownConfigInfo setFilePath(String filePath) {
     this.filePath = filePath;
-    return this;
-  }
-
-  public String getFileName() {
-    return fileName;
-  }
-
-  public HttpDownConfigInfo setFileName(String fileName) {
-    this.fileName = fileName;
-    return this;
-  }
-
-  public long getTotalSize() {
-    return totalSize;
-  }
-
-  public HttpDownConfigInfo setTotalSize(long totalSize) {
-    this.totalSize = totalSize;
-    return this;
-  }
-
-  public boolean isSupportRange() {
-    return supportRange;
-  }
-
-  public HttpDownConfigInfo setSupportRange(boolean supportRange) {
-    this.supportRange = supportRange;
     return this;
   }
 
@@ -109,11 +69,7 @@ public class HttpDownConfigInfo implements Serializable {
   @Override
   public String toString() {
     return "HttpDownConfigInfo{" +
-        "id='" + id + '\'' +
-        ", filePath='" + filePath + '\'' +
-        ", fileName='" + fileName + '\'' +
-        ", totalSize=" + totalSize +
-        ", supportRange=" + supportRange +
+        "filePath='" + filePath + '\'' +
         ", connections=" + connections +
         ", timeout=" + timeout +
         ", retryCount=" + retryCount +

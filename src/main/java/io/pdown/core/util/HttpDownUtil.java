@@ -23,12 +23,12 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.resolver.NoopAddressResolverGroup;
-import io.pdown.core.entity.ChunkInfo;
-import io.pdown.core.entity.ConnectInfo;
+import io.pdown.core.boot.HttpDownBootstrap;
 import io.pdown.core.entity.HttpDownConfigInfo;
 import io.pdown.core.entity.HttpHeadsInfo;
 import io.pdown.core.entity.HttpRequestInfo;
 import io.pdown.core.entity.HttpRequestInfo.HttpVer;
+import io.pdown.core.entity.HttpResponseInfo;
 import io.pdown.core.entity.TaskInfo;
 import io.pdown.core.proxy.ProxyConfig;
 import io.pdown.core.proxy.ProxyHandleFactory;
@@ -39,7 +39,6 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -66,9 +65,9 @@ public class HttpDownUtil {
   }
 
   /**
-   * 检测是否支持断点下载
+   * 检测响应相关信息
    */
-  public static HttpDownConfigInfo getHttpDownConfigInfo(HttpRequest httpRequest, HttpHeaders resHeaders, ProxyConfig proxyConfig, NioEventLoopGroup loopGroup)
+  public static HttpResponseInfo getHttpDownConfigInfo(HttpRequest httpRequest, HttpHeaders resHeaders, ProxyConfig proxyConfig, NioEventLoopGroup loopGroup)
       throws Exception {
     HttpResponse httpResponse = null;
     if (resHeaders == null) {
@@ -105,9 +104,9 @@ public class HttpDownUtil {
       }
       resHeaders = httpResponse.headers();
     }
-    HttpDownConfigInfo downConfig = new HttpDownConfigInfo();
-    downConfig.setFileName(getDownFileName(httpRequest, resHeaders));
-    downConfig.setTotalSize(getDownFileSize(resHeaders));
+    HttpResponseInfo responseInfo = new HttpResponseInfo();
+    responseInfo.setFileName(getDownFileName(httpRequest, resHeaders));
+    responseInfo.setTotalSize(getDownFileSize(resHeaders));
     //chunked编码不支持断点下载
     if (resHeaders.contains(HttpHeaderNames.CONTENT_LENGTH)) {
       if (httpResponse == null) {
@@ -115,10 +114,10 @@ public class HttpDownUtil {
       }
       //206表示支持断点下载
       if (httpResponse.status().equals(HttpResponseStatus.PARTIAL_CONTENT)) {
-        downConfig.setSupportRange(true);
+        responseInfo.setSupportRange(true);
       }
     }
-    return downConfig;
+    return responseInfo;
   }
 
   public static String getDownFileName(HttpRequest httpRequest, HttpHeaders resHeaders) {
@@ -299,7 +298,7 @@ public class HttpDownUtil {
       content = body.getBytes();
       headsInfo.add("Content-Length", content.length);
     }
-    HttpRequestInfo requestInfo = new HttpRequestInfo(HttpVer.HTTP_1_1, HttpMethod.GET,url, headsInfo, content);
+    HttpRequestInfo requestInfo = new HttpRequestInfo(HttpVer.HTTP_1_1, HttpMethod.GET, url, headsInfo, content);
     requestInfo.setRequestProto(ProtoUtil.getRequestProto(requestInfo));
     return requestInfo;
   }
@@ -317,84 +316,7 @@ public class HttpDownUtil {
   /**
    * 取下载文件绝对路径
    */
-  public static String getTaskFilePath(HttpDownConfigInfo downConfigInfo) {
-    return downConfigInfo.getFilePath() + File.separator + downConfigInfo.getFileName();
+  public static String getTaskFilePath(HttpDownBootstrap httpDownBootstrap) {
+    return httpDownBootstrap.getDownConfig().getFilePath() + File.separator + httpDownBootstrap.getResponse().getFileName();
   }
-
-  /**
-   * 取下载文件记录信息文件路径
-   */
-  public static String getTaskRecordFilePath(HttpDownConfigInfo downConfigInfo) {
-    return getTaskRecordFilePath(downConfigInfo.getFilePath(), downConfigInfo.getFileName());
-  }
-
-  /**
-   * 取下载文件记录信息文件路径
-   */
-  public static String getTaskRecordFilePath(String filePath, String fileName) {
-    return filePath + File.separator + "." + fileName + ".inf";
-  }
-
-  /**
-   * 取下载文件记录信息文件路径
-   */
-  public static String getTaskRecordBakFilePath(String filePath, String fileName) {
-    return getTaskRecordFilePath(filePath, fileName) + ".bak";
-  }
-
-  /**
-   * 生成下载分段信息
-   */
-  public static void buildChunkInfoList(HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
-    List<ChunkInfo> chunkInfoList = new ArrayList<>();
-    List<ConnectInfo> connectInfoList = new ArrayList<>();
-    if (downConfig.getTotalSize() > 0) {  //非chunked编码
-      //计算chunk列表
-      long chunkSize = downConfig.getTotalSize() / downConfig.getConnections();
-      for (int i = 0; i < downConfig.getConnections(); i++) {
-        ChunkInfo chunkInfo = new ChunkInfo();
-        ConnectInfo connectInfo = new ConnectInfo();
-        chunkInfo.setIndex(i);
-        long start = i * chunkSize;
-        if (i == downConfig.getConnections() - 1) { //最后一个连接去下载多出来的字节
-          chunkSize += downConfig.getTotalSize() % downConfig.getConnections();
-        }
-        long end = start + chunkSize - 1;
-        chunkInfo.setTotalSize(chunkSize);
-        chunkInfoList.add(chunkInfo);
-
-        connectInfo.setChunkIndex(i);
-        connectInfo.setStartPosition(start);
-        connectInfo.setEndPosition(end);
-        connectInfoList.add(connectInfo);
-      }
-    } else { //chunked下载
-      ChunkInfo chunkInfo = new ChunkInfo();
-      ConnectInfo connectInfo = new ConnectInfo();
-      connectInfo.setChunkIndex(0);
-      chunkInfo.setIndex(0);
-      chunkInfoList.add(chunkInfo);
-      connectInfoList.add(connectInfo);
-    }
-    taskInfo.setChunkInfoList(chunkInfoList);
-    taskInfo.setConnectInfoList(connectInfoList);
-  }
-
-  public static void reset(TaskInfo taskInfo) {
-    taskInfo.setStartTime(0);
-    taskInfo.setLastStartTime(0);
-    taskInfo.getChunkInfoList().forEach(chunkInfo -> {
-      chunkInfo.setPauseTime(0);
-      chunkInfo.setDownSize(0);
-    });
-  }
-  /*public static void save(HttpDownInfo downConfig) throws IOException {
-    TaskInfo taskInfo = downConfig.getTaskInfo();
-    ByteUtil.serialize(downConfig, getTaskRecordFilePath(taskInfo), getTaskRecordBakFilePath(taskInfo), true);
-  }
-
-  public static HttpDownInfo get(String filePath) throws IOException, ClassNotFoundException {
-    File file = new File(filePath);
-    return (HttpDownInfo) ByteUtil.deserialize(getTaskRecordFilePath(file.getParent(), file.getName()), getTaskRecordBakFilePath(file.getParent(), file.getName()));
-  }*/
 }

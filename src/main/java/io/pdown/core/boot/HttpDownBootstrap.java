@@ -25,6 +25,7 @@ import io.pdown.core.entity.ChunkInfo;
 import io.pdown.core.entity.ConnectInfo;
 import io.pdown.core.entity.HttpDownConfigInfo;
 import io.pdown.core.entity.HttpRequestInfo;
+import io.pdown.core.entity.HttpResponseInfo;
 import io.pdown.core.entity.TaskInfo;
 import io.pdown.core.exception.BootstrapException;
 import io.pdown.core.handle.DownTimeoutHandler;
@@ -40,7 +41,9 @@ import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -55,6 +58,7 @@ public class HttpDownBootstrap implements Serializable {
   private static final double TIME_1S_NANO = (double) TimeUnit.SECONDS.toNanos(1);
 
   private HttpRequestInfo request;
+  private HttpResponseInfo response;
   private HttpDownConfigInfo downConfig;
   private ProxyConfig proxyConfig;
   private TaskInfo taskInfo;
@@ -67,9 +71,10 @@ public class HttpDownBootstrap implements Serializable {
   private HttpDownBootstrap() {
   }
 
-  public HttpDownBootstrap(HttpRequestInfo request, HttpDownConfigInfo downConfig, ProxyConfig proxyConfig, TaskInfo taskInfo, NioEventLoopGroup loopGroup,
+  public HttpDownBootstrap(HttpRequestInfo request,HttpResponseInfo response, HttpDownConfigInfo downConfig, ProxyConfig proxyConfig, TaskInfo taskInfo, NioEventLoopGroup loopGroup,
       HttpDownCallback callback) {
     this.request = request;
+    this.response = response;
     this.downConfig = downConfig;
     this.proxyConfig = proxyConfig;
     this.taskInfo = taskInfo;
@@ -77,19 +82,23 @@ public class HttpDownBootstrap implements Serializable {
     this.callback = callback;
   }
 
-  protected HttpRequestInfo getRequest() {
+  public HttpRequestInfo getRequest() {
     return request;
   }
 
-  protected HttpDownConfigInfo getDownConfig() {
+  public HttpResponseInfo getResponse() {
+    return response;
+  }
+
+  public HttpDownConfigInfo getDownConfig() {
     return downConfig;
   }
 
-  protected ProxyConfig getProxyConfig() {
+  public ProxyConfig getProxyConfig() {
     return proxyConfig;
   }
 
-  protected TaskInfo getTaskInfo() {
+  public TaskInfo getTaskInfo() {
     return taskInfo;
   }
 
@@ -101,45 +110,59 @@ public class HttpDownBootstrap implements Serializable {
     if (downConfig.getFilePath() == null || "".equals(downConfig.getFilePath().trim())) {
       throw new BootstrapException("下载路径不能为空");
     }
-    if (!FileUtil.exists(downConfig.getFilePath())) {
-      try {
-        FileUtil.createDirSmart(downConfig.getFilePath());
-      } catch (IOException e) {
-        throw new BootstrapException("创建目录失败，请重试", e);
+    String filePath = HttpDownUtil.getTaskFilePath(this);
+    try {
+      if (!FileUtil.exists(downConfig.getFilePath())) {
+        try {
+          FileUtil.createDirSmart(downConfig.getFilePath());
+        } catch (IOException e) {
+          throw new BootstrapException("创建目录失败，请重试", e);
+        }
       }
-    }
-    if (!FileUtil.canWrite(downConfig.getFilePath())) {
-      throw new BootstrapException("无权访问下载路径，请修改路径或开放目录写入权限");
-    }
-    //磁盘空间不足
-    if (downConfig.getTotalSize() > FileUtil.getDiskFreeSize(downConfig.getFilePath())) {
-      throw new BootstrapException("磁盘空间不足，请修改路径");
-    }
-    //有文件同名
-    if (new File(HttpDownUtil.getTaskFilePath(downConfig)).exists()) {
-      if (downConfig.isAutoRename()) {
-        downConfig.setFileName(FileUtil.renameIfExists(HttpDownUtil.getTaskFilePath(downConfig)));
-      } else {
-        throw new BootstrapException("文件名已存在，请修改文件名");
+      if (!FileUtil.canWrite(downConfig.getFilePath())) {
+        throw new BootstrapException("无权访问下载路径，请修改路径或开放目录写入权限");
       }
+      //磁盘空间不足
+      if (response.getTotalSize() > FileUtil.getDiskFreeSize(downConfig.getFilePath())) {
+        throw new BootstrapException("磁盘空间不足，请修改路径");
+      }
+      //有文件同名
+      if (new File(filePath).exists()) {
+        if (downConfig.isAutoRename()) {
+          response.setFileName(FileUtil.renameIfExists(filePath));
+          filePath = HttpDownUtil.getTaskFilePath(this);
+        } else {
+          throw new BootstrapException("文件名已存在，请修改文件名");
+        }
+      }
+    } catch (BootstrapException e) {
+      if (loopGroup != null) {
+        loopGroup.shutdownGracefully();
+        loopGroup = null;
+      }
+      if (progressThread != null) {
+        progressThread.close();
+        progressThread = null;
+      }
+      throw e;
     }
     try {
       //创建文件
-      if (downConfig.isSupportRange()) {
-        FileUtil.createSparseFile(HttpDownUtil.getTaskFilePath(downConfig), downConfig.getTotalSize());
+      if (response.isSupportRange()) {
+        FileUtil.createSparseFile(filePath, response.getTotalSize());
       } else {
-        FileUtil.createFile(HttpDownUtil.getTaskFilePath(downConfig));
+        FileUtil.createFile(filePath);
       }
     } catch (IOException e) {
       throw new BootstrapException("创建文件失败，请重试", e);
     }
-    HttpDownUtil.buildChunkInfoList(downConfig, taskInfo);
+    buildChunkInfoList();
     commonStart();
     taskInfo.setStartTime(System.currentTimeMillis());
     //文件下载开始回调
     if (callback != null) {
       request.headers().remove(HttpHeaderNames.RANGE);
-      callback.onStart(request, downConfig);
+      callback.onStart(this);
     }
     for (int i = 0; i < taskInfo.getConnectInfoList().size(); i++) {
       ConnectInfo connectInfo = taskInfo.getConnectInfoList().get(i);
@@ -164,7 +187,7 @@ public class HttpDownBootstrap implements Serializable {
     cf.addListener((ChannelFutureListener) future -> {
       if (future.isSuccess()) {
         LOGGER.debug("连接成功：" + connectInfo);
-        if (downConfig.isSupportRange()) {
+        if (response.isSupportRange()) {
           request.headers().set(HttpHeaderNames.RANGE, "bytes=" + connectInfo.getStartPosition() + "-" + connectInfo.getEndPosition());
         } else {
           request.headers().remove(HttpHeaderNames.RANGE);
@@ -196,7 +219,7 @@ public class HttpDownBootstrap implements Serializable {
    * @param isHelp 是否为帮助其他分段下载发起的连接
    */
   private void reConnect(ConnectInfo connectInfo, boolean isHelp) {
-    if (!isHelp && downConfig.isSupportRange()) {
+    if (!isHelp && response.isSupportRange()) {
       connectInfo.setStartPosition(connectInfo.getStartPosition() + connectInfo.getDownSize());
     }
     connectInfo.setDownSize(0);
@@ -204,7 +227,7 @@ public class HttpDownBootstrap implements Serializable {
       connect(connectInfo);
     } else {
       if (callback != null) {
-        callback.onChunkError(request, downConfig, taskInfo, taskInfo.getChunkInfoList().get(connectInfo.getChunkIndex()));
+        callback.onChunkError(this, taskInfo.getChunkInfoList().get(connectInfo.getChunkIndex()));
       }
       if (taskInfo.getConnectInfoList().stream()
           .filter(connect -> connect.getStatus() != HttpDownStatus.DONE)
@@ -213,7 +236,7 @@ public class HttpDownBootstrap implements Serializable {
         taskInfo.getChunkInfoList().forEach(chunkInfo -> chunkInfo.setStatus(HttpDownStatus.FAIL));
         close();
         if (callback != null) {
-          callback.onError(request, downConfig, null);
+          callback.onError(this);
         }
       }
     }
@@ -239,7 +262,7 @@ public class HttpDownBootstrap implements Serializable {
       close();
     }
     if (callback != null) {
-      callback.onPause(request, downConfig, taskInfo);
+      callback.onPause(this);
     }
   }
 
@@ -257,7 +280,7 @@ public class HttpDownBootstrap implements Serializable {
           || taskInfo.getStatus() == HttpDownStatus.DONE) {
         return;
       }
-      if (!FileUtil.exists(HttpDownUtil.getTaskFilePath(downConfig))) {
+      if (!FileUtil.exists(HttpDownUtil.getTaskFilePath(this))) {
         close();
         startDown();
       } else {
@@ -277,15 +300,15 @@ public class HttpDownBootstrap implements Serializable {
       }
     }
     if (callback != null) {
-      callback.onContinue(request, downConfig, taskInfo);
+      callback.onContinue(this);
     }
   }
 
   private void done() throws IOException {
     stopThreads();
     if (callback != null) {
-      callback.onProgress(request, downConfig, taskInfo);
-      callback.onDone(request, downConfig, taskInfo);
+      callback.onProgress(this);
+      callback.onDone(this);
     }
   }
 
@@ -305,40 +328,6 @@ public class HttpDownBootstrap implements Serializable {
       LOGGER.error("closeChunk error", e);
     }
   }
-
-  /*public void delete(boolean delFile) throws Exception {
-    TaskInfo taskInfo = downConfig.getTaskInfo();
-    //删除任务进度记录文件
-    synchronized (taskInfo) {
-      close();
-      deleteRecord();
-      if (delFile) {
-        FileUtil.deleteIfExists(HttpDownUtil.getTaskFilePath(taskInfo));
-      }
-      if (callback != null) {
-        callback.onDelete(downConfig);
-      }
-    }
-  }
-
-  private synchronized void saveRecord() {
-    TaskInfo taskInfo = downConfig.getTaskInfo();
-    try {
-      ByteUtil.serialize(downConfig, HttpDownUtil.getTaskRecordFilePath(taskInfo), HttpDownUtil.getTaskRecordBakFilePath(taskInfo), true);
-    } catch (IOException e) {
-      LOGGER.error("saveRecord error", e);
-    }
-  }
-
-  private void deleteRecord() {
-    TaskInfo taskInfo = downConfig.getTaskInfo();
-    try {
-      FileUtil.deleteIfExists(HttpDownUtil.getTaskRecordFilePath(taskInfo));
-      FileUtil.deleteIfExists(HttpDownUtil.getTaskRecordBakFilePath(taskInfo));
-    } catch (IOException e) {
-      LOGGER.error("deleteRecord error", e);
-    }
-  }*/
 
   private void stopThreads() {
     loopGroup.shutdownGracefully();
@@ -370,6 +359,44 @@ public class HttpDownBootstrap implements Serializable {
     }
   }
 
+  /**
+   * 生成下载分段信息
+   */
+  public void buildChunkInfoList() {
+    List<ChunkInfo> chunkInfoList = new ArrayList<>();
+    List<ConnectInfo> connectInfoList = new ArrayList<>();
+    if (response.getTotalSize() > 0) {  //非chunked编码
+      //计算chunk列表
+      long chunkSize = response.getTotalSize() / downConfig.getConnections();
+      for (int i = 0; i < downConfig.getConnections(); i++) {
+        ChunkInfo chunkInfo = new ChunkInfo();
+        ConnectInfo connectInfo = new ConnectInfo();
+        chunkInfo.setIndex(i);
+        long start = i * chunkSize;
+        if (i == downConfig.getConnections() - 1) { //最后一个连接去下载多出来的字节
+          chunkSize += response.getTotalSize() % downConfig.getConnections();
+        }
+        long end = start + chunkSize - 1;
+        chunkInfo.setTotalSize(chunkSize);
+        chunkInfoList.add(chunkInfo);
+
+        connectInfo.setChunkIndex(i);
+        connectInfo.setStartPosition(start);
+        connectInfo.setEndPosition(end);
+        connectInfoList.add(connectInfo);
+      }
+    } else { //chunked下载
+      ChunkInfo chunkInfo = new ChunkInfo();
+      ConnectInfo connectInfo = new ConnectInfo();
+      connectInfo.setChunkIndex(0);
+      chunkInfo.setIndex(0);
+      chunkInfoList.add(chunkInfo);
+      connectInfoList.add(connectInfo);
+    }
+    taskInfo.setChunkInfoList(chunkInfoList);
+    taskInfo.setConnectInfoList(connectInfoList);
+  }
+
   @Override
   public String toString() {
     return "HttpDownBootstrap{" +
@@ -377,7 +404,7 @@ public class HttpDownBootstrap implements Serializable {
         ", downConfig=" + downConfig +
         ", proxyConfig=" + proxyConfig +
         ", taskInfo=" + taskInfo +
-        ", callback=" + callback.getClass() +
+        ", callback=" + (callback != null ? callback.getClass() : callback) +
         '}';
   }
 
@@ -424,7 +451,7 @@ public class HttpDownBootstrap implements Serializable {
               .filter(chunkInfo -> chunkInfo.getStatus() != HttpDownStatus.DONE)
               .mapToLong(ChunkInfo::getSpeed)
               .sum());
-          callback.onProgress(request, downConfig, taskInfo);
+          callback.onProgress(HttpDownBootstrap.this);
         }
         try {
           TimeUnit.SECONDS.sleep(period);
@@ -480,7 +507,7 @@ public class HttpDownBootstrap implements Serializable {
                 ByteBuf byteBuf = httpContent.content();
                 int size = byteBuf.readableBytes();
                 //判断是否超出下载字节范围
-                if (downConfig.isSupportRange() && connectInfo.getDownSize() + size > connectInfo.getTotalSize()) {
+                if (response.isSupportRange() && connectInfo.getDownSize() + size > connectInfo.getTotalSize()) {
                   size = (int) (connectInfo.getTotalSize() - connectInfo.getDownSize());
                 }
                 fileChannel.write(byteBuf.nioBuffer());
@@ -513,7 +540,7 @@ public class HttpDownBootstrap implements Serializable {
                     }
                   }
                 }
-                if (!downConfig.isSupportRange() && !(httpContent instanceof LastHttpContent)) {
+                if (!response.isSupportRange() && !(httpContent instanceof LastHttpContent)) {
                   return;
                 }
                 long time = System.currentTimeMillis();
@@ -531,12 +558,12 @@ public class HttpDownBootstrap implements Serializable {
                     }
                     //分段下载完成回调
                     if (callback != null) {
-                      callback.onChunkDone(request, downConfig, taskInfo, chunkInfo);
+                      callback.onChunkDone(HttpDownBootstrap.this, chunkInfo);
                     }
                     //所有分段都下载完成
                     if (taskInfo.getChunkInfoList().stream().allMatch((chunk) -> chunk.getStatus() == HttpDownStatus.DONE)) {
-                      if (!downConfig.isSupportRange()) {  //chunked编码最后更新文件大小
-                        downConfig.setTotalSize(taskInfo.getDownSize());
+                      if (!response.isSupportRange()) {  //chunked编码最后更新文件大小
+                        response.setTotalSize(taskInfo.getDownSize());
                         taskInfo.getChunkInfoList().get(0).setTotalSize(taskInfo.getDownSize());
                       }
                       //文件下载完成回调
@@ -544,7 +571,7 @@ public class HttpDownBootstrap implements Serializable {
                       connectInfo.setStatus(HttpDownStatus.DONE);
                       taskInfo.setStatus(HttpDownStatus.DONE);
                       //计算平均速度
-                      taskInfo.setSpeed(calcSpeed(downConfig.getTotalSize(), System.currentTimeMillis() - taskInfo.getStartTime()));
+                      taskInfo.setSpeed(calcSpeed(response.getTotalSize(), System.currentTimeMillis() - taskInfo.getStartTime()));
                       done();
                       return;
                     }
@@ -594,8 +621,8 @@ public class HttpDownBootstrap implements Serializable {
                 return;
               }
               LOGGER.debug("下载响应：" + connectInfo);
-              fileChannel = Files.newByteChannel(Paths.get(HttpDownUtil.getTaskFilePath(downConfig)), StandardOpenOption.WRITE);
-              if (downConfig.isSupportRange()) {
+              fileChannel = Files.newByteChannel(Paths.get(HttpDownUtil.getTaskFilePath(HttpDownBootstrap.this)), StandardOpenOption.WRITE);
+              if (response.isSupportRange()) {
                 fileChannel.position(connectInfo.getStartPosition() + connectInfo.getDownSize());
               }
               connectInfo.setFileChannel(fileChannel);
@@ -609,7 +636,7 @@ public class HttpDownBootstrap implements Serializable {
         }
 
         private boolean isChunkDownDone(HttpContent httpContent) {
-          if (downConfig.isSupportRange()) {
+          if (response.isSupportRange()) {
             if (chunkInfo.getDownSize() >= chunkInfo.getTotalSize()) {
               return true;
             }

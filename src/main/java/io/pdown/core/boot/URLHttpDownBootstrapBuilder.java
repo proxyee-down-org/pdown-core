@@ -4,6 +4,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.internal.StringUtil;
 import io.pdown.core.entity.HttpDownConfigInfo;
 import io.pdown.core.entity.HttpRequestInfo;
+import io.pdown.core.entity.HttpResponseInfo;
 import io.pdown.core.exception.BootstrapBuildException;
 import io.pdown.core.util.HttpDownUtil;
 import java.util.Map;
@@ -47,15 +48,15 @@ public class URLHttpDownBootstrapBuilder extends HttpDownBootstrapBuilder {
       if (getLoopGroup() == null) {
         loopGroup(new NioEventLoopGroup(1));
       }
-      HttpDownConfigInfo parseDownConfig = HttpDownUtil.getHttpDownConfigInfo(request, null, getProxyConfig(), getLoopGroup());
-      if (getDownConfig() == null) {
-        downConfig(parseDownConfig);
+      HttpResponseInfo response = HttpDownUtil.getHttpDownConfigInfo(request, null, getProxyConfig(), getLoopGroup());
+      if (getResponse() == null) {
+        response(response);
       } else {
-        if (StringUtil.isNullOrEmpty(getDownConfig().getFileName())) {
-          getDownConfig().setFileName(parseDownConfig.getFileName());
+        if (StringUtil.isNullOrEmpty(getResponse().getFileName())) {
+          getResponse().setFileName(response.getFileName());
         }
-        getDownConfig().setSupportRange(parseDownConfig.isSupportRange());
-        getDownConfig().setTotalSize(parseDownConfig.getTotalSize());
+        getResponse().setSupportRange(response.isSupportRange());
+        getResponse().setTotalSize(response.getTotalSize());
       }
     } catch (Exception e) {
       if (getLoopGroup() != null) {

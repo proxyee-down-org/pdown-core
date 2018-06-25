@@ -5,6 +5,7 @@ import io.pdown.core.boot.HttpDownBootstrap;
 import io.pdown.core.boot.URLHttpDownBootstrapBuilder;
 import io.pdown.core.dispatch.ConsoleHttpDownCallback;
 import io.pdown.core.entity.HttpDownConfigInfo;
+import io.pdown.core.entity.HttpResponseInfo;
 import io.pdown.core.exception.BootstrapBuildException;
 import io.pdown.core.proxy.ProxyConfig;
 import io.pdown.core.proxy.ProxyType;
@@ -93,9 +94,11 @@ public class DownClient {
         builder.heads(heads);
       }
       builder.body(line.getOptionValue("B"));
+      if (line.hasOption("N")) {
+        builder.response(new HttpResponseInfo(line.getOptionValue("N")));
+      }
       builder.downConfig(new HttpDownConfigInfo()
           .setFilePath(line.getOptionValue("P"))
-          .setFileName(line.getOptionValue("N"))
           .setConnections(Integer.parseInt(line.getOptionValue("C", "0")))
           .setSpeedLimit(Integer.parseInt(line.getOptionValue("S", "0"))));
       String proxy = line.getOptionValue("X");

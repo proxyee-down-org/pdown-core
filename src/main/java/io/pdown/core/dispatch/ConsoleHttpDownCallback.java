@@ -1,5 +1,6 @@
 package io.pdown.core.dispatch;
 
+import io.pdown.core.boot.HttpDownBootstrap;
 import io.pdown.core.entity.HttpDownConfigInfo;
 import io.pdown.core.entity.HttpRequestInfo;
 import io.pdown.core.entity.TaskInfo;
@@ -17,27 +18,27 @@ public class ConsoleHttpDownCallback extends HttpDownCallback {
   }
 
   @Override
-  public void onStart(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig) {
-    System.out.println(requestInfo.toString());
+  public void onStart(HttpDownBootstrap httpDownBootstrap) {
+    System.out.println(httpDownBootstrap.getRequest().toString());
     System.out.println();
   }
 
   @Override
-  public void onProgress(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
+  public void onProgress(HttpDownBootstrap httpDownBootstrap) {
     double rate = 0;
-    if (downConfig.getTotalSize() > 0) {
-      rate = taskInfo.getDownSize() / (double) downConfig.getTotalSize();
+    if (httpDownBootstrap.getResponse().getTotalSize() > 0) {
+      rate = httpDownBootstrap.getTaskInfo().getDownSize() / (double) httpDownBootstrap.getResponse().getTotalSize();
     }
-    printProgress(rate, taskInfo.getSpeed());
+    printProgress(rate, httpDownBootstrap.getTaskInfo().getSpeed());
   }
 
   @Override
-  public void onError(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
+  public void onError(HttpDownBootstrap httpDownBootstrap) {
     System.out.println("\n\nDownload error");
   }
 
   @Override
-  public void onDone(HttpRequestInfo requestInfo, HttpDownConfigInfo downConfig, TaskInfo taskInfo) {
+  public void onDone(HttpDownBootstrap httpDownBootstrap) {
     System.out.println("\n\nDownload completed");
   }
 
