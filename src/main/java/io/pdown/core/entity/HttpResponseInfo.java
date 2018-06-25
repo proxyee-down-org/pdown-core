@@ -12,6 +12,9 @@ public class HttpResponseInfo implements Serializable {
    */
   private boolean supportRange;
 
+  public HttpResponseInfo() {
+  }
+
   public HttpResponseInfo(String fileName, long totalSize, boolean supportRange) {
     this.fileName = fileName;
     this.totalSize = totalSize;
