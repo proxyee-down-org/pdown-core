@@ -45,28 +45,28 @@ speedLimit | 0(B/S) | Download speed limit.
 //Download a file with URL
 HttpDownBootstrap.builder("http://127.0.0.1/static/test.zip")
           .build()
-          .startDown();
+          .start();
 //Download a file with a custom request and response
 HttpDownBootstrap.builder()
           .request(new HttpRequestInfo(HttpMethod.GET, "http://127.0.0.1/static/test.zip"))
           .response(new HttpResponseInfo(2048,true))
           .build()
-          .startDown();
+          .start();
 //Set download config
 HttpDownBootstrap.builder("http://127.0.0.1/static/test.zip")
           .downConfig(new HttpDownConfigInfo().setConnections(32).setAutoRename(true).setSpeedLimit(1024*1024*5L))
           .build()
-          .startDown();
+          .start();
 //Set proxy config
 HttpDownBootstrap.builder("http://127.0.0.1/static/test.zip")
           .proxyConfig(new ProxyConfig(ProxyType.HTTP,"127.0.0.1",8888))
           .build()
-          .startDown();
+          .start();
 //Set callback
 HttpDownBootstrap.builder("http://127.0.0.1/static/test.zip")
           .callback(new ConsoleHttpDownCallback())
           .build()
-          .startDown();
+          .start();
 ```
 ## Build
 ```

@@ -1,14 +1,14 @@
-package lee.study.down;
+package org.pdown.core.test;
 
 import org.pdown.core.boot.HttpDownBootstrap;
 import org.pdown.core.dispatch.ConsoleHttpDownCallback;
 import org.pdown.core.entity.HttpDownConfigInfo;
 import org.pdown.core.util.FileUtil;
-import lee.study.down.server.RangeDownTestServer;
+import org.pdown.core.test.server.RangeDownTestServer;
 
 public class ConsoleDownTestClient {
 
-  private static final String TEST_DIR = System.getProperty("user.dir")+"/target";
+  private static final String TEST_DIR = System.getProperty("user.dir") + "/target/test";
   private static final String TEST_FILE = TEST_DIR + "/" + "test.data";
 
   public static void main(String[] args) throws Exception {
@@ -40,6 +40,6 @@ public class ConsoleDownTestClient {
             super.onDone(httpDownBootstrap);
             System.exit(0);
           }
-        }).build().startDown();
+        }).build().start();
   }
 }

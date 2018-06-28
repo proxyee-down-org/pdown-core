@@ -1,4 +1,4 @@
-package lee.study.down.server;
+package org.pdown.core.test.server;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;

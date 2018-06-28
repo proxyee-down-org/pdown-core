@@ -1,11 +1,11 @@
-package lee.study.down;
+package org.pdown.core.test;
 
 import org.pdown.core.boot.HttpDownBootstrap;
 import org.pdown.core.dispatch.ConsoleHttpDownCallback;
 import org.pdown.core.entity.HttpDownConfigInfo;
+import org.pdown.core.test.server.ChunkedDownTestServer;
 import org.pdown.core.util.FileUtil;
 import org.pdown.core.util.HttpDownUtil;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -17,22 +17,24 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import lee.study.down.server.ChunkedDownTestServer;
-import lee.study.down.server.RangeDownTestServer;
+import org.pdown.core.test.server.RangeDownTestServer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DownClientTest {
 
-  private static final String TEST_DIR = System.getProperty("user.dir")+"/target";
+  private static final Logger LOGGER = LoggerFactory.getLogger(DownClientTest.class);
+  private static final String TEST_DIR = System.getProperty("user.dir") + "/target/test";
   private static final String TEST_BUILD_FILE = TEST_DIR + "/build.data";
 
   @Before
   public void httpServerStart() throws InterruptedException, IOException {
-    FileUtil.createDir(TEST_DIR);
+    FileUtil.createDirSmart(TEST_DIR);
     //生成下载文件
-    buildRandomFile(TEST_BUILD_FILE, 1024 * 1024 * 100L);
+    buildRandomFile(TEST_BUILD_FILE, 1024 * 1024 * 500L);
     //正常下载
     new RangeDownTestServer(TEST_BUILD_FILE).start(8866);
     //超时下载
@@ -58,9 +60,7 @@ public class DownClientTest {
 
   @Test
   public void down() throws Exception {
-    //限速5MB/S
-    downTest(8866, 4, 1024 * 1024 * 5L, 0);
-    /*//正常下载
+    //正常下载
     downTest(8866, 1);
     downTest(8866, 4);
     downTest(8866, 32);
@@ -75,7 +75,7 @@ public class DownClientTest {
     //限速5MB/S
     downTest(8866, 4, 1024 * 1024 * 5L, 0);
     //暂停5S继续
-    downTest(8866, 4, 0, 5000L);*/
+    downTest(8866, 4, 0, 5000L);
   }
 
   @After
@@ -136,21 +136,21 @@ public class DownClientTest {
 
           @Override
           public void onPause(HttpDownBootstrap httpDownBootstrap) {
-            System.out.println("onPause");
+            System.out.println("\nonPause");
           }
 
           @Override
-          public void onContinue(HttpDownBootstrap httpDownBootstrap) {
-            System.out.println("onContinue");
+          public void onResume(HttpDownBootstrap httpDownBootstrap) {
+            System.out.println("\nonResume");
           }
         })
         .build();
-    httpDownBootstrap.startDown();
+    httpDownBootstrap.start();
     if (pauseTime > 0) {
       Thread.sleep(233L);
-      httpDownBootstrap.pauseDown();
+      httpDownBootstrap.pause();
       Thread.sleep(pauseTime);
-      httpDownBootstrap.continueDown();
+      httpDownBootstrap.resume();
     }
     countDownLatch.await();
     assert succ.get();
