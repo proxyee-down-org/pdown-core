@@ -4,7 +4,7 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>io.pdown</groupId>
+  <groupId>org.pdown</groupId>
   <artifactId>core</artifactId>
   <version>1.0-SNAPSHOT</version>
 
@@ -113,7 +113,7 @@
               </descriptorRefs>
               <archive>
                 <manifest>
-                  <mainClass>io.pdown.core.DownClient</mainClass>
+                  <mainClass>org.pdown.core.DownClient</mainClass>
                 </manifest>
               </archive>
             </configuration>

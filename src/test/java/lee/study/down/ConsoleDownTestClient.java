@@ -1,16 +1,14 @@
 package lee.study.down;
 
-import io.pdown.core.boot.HttpDownBootstrap;
-import io.pdown.core.dispatch.ConsoleHttpDownCallback;
-import io.pdown.core.entity.HttpDownConfigInfo;
-import io.pdown.core.entity.HttpRequestInfo;
-import io.pdown.core.entity.TaskInfo;
-import io.pdown.core.util.FileUtil;
+import org.pdown.core.boot.HttpDownBootstrap;
+import org.pdown.core.dispatch.ConsoleHttpDownCallback;
+import org.pdown.core.entity.HttpDownConfigInfo;
+import org.pdown.core.util.FileUtil;
 import lee.study.down.server.RangeDownTestServer;
 
 public class ConsoleDownTestClient {
 
-  private static final String TEST_DIR = "f:/test";
+  private static final String TEST_DIR = System.getProperty("user.dir")+"/target";
   private static final String TEST_FILE = TEST_DIR + "/" + "test.data";
 
   public static void main(String[] args) throws Exception {
@@ -24,13 +22,13 @@ public class ConsoleDownTestClient {
       }
     }).start();
     //生成下载文件
-    DownTestClient.buildRandomFile(TEST_FILE, 1024 * 1024 * 100L);
+    DownClientTest.buildRandomFile(TEST_FILE, 1024 * 1024 * 100L);
     HttpDownBootstrap.builder("http://127.0.0.1:8866")
         .downConfig(new HttpDownConfigInfo().setFilePath(TEST_DIR)
             .setAutoRename(true)
             .setConnections(5)
             .setSpeedLimit(5 * 1024 * 1024))
-        .callback(new ConsoleHttpDownCallback(){
+        .callback(new ConsoleHttpDownCallback() {
           @Override
           public void onError(HttpDownBootstrap httpDownBootstrap) {
             super.onError(httpDownBootstrap);

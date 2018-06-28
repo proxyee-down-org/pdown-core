@@ -72,7 +72,7 @@ HttpDownBootstrap.builder("http://127.0.0.1/static/test.zip")
 ```
 git clone git@github.com:proxyee-down-org/pdown-core.git
 cd pdown-core
-mvn clean package -Pexec
+mvn clean package -Dmaven.test.skip=true -Pexec
 ```
 ## Run
 ```
