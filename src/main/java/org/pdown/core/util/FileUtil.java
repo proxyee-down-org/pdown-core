@@ -156,10 +156,7 @@ public class FileUtil {
   public static File createDirSmart(String path) throws IOException {
     try {
       File file = new File(path);
-      if (file.exists()) {
-        file.delete();
-        file.mkdir();
-      } else {
+      if (!file.exists()) {
         Stack<File> stack = new Stack<>();
         File temp = new File(path);
         while (temp != null) {
