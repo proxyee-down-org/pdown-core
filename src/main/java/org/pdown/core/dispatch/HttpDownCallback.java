@@ -14,7 +14,7 @@ public class HttpDownCallback {
   public void onPause(HttpDownBootstrap httpDownBootstrap) {
   }
 
-  public void onContinue(HttpDownBootstrap httpDownBootstrap) {
+  public void onResume(HttpDownBootstrap httpDownBootstrap) {
   }
 
   public void onChunkError(HttpDownBootstrap httpDownBootstrap, ChunkInfo chunkInfo) {

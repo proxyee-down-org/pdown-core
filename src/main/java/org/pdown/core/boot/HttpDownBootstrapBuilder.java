@@ -2,6 +2,7 @@ package org.pdown.core.boot;
 
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.internal.StringUtil;
+import java.nio.file.Paths;
 import org.pdown.core.dispatch.HttpDownCallback;
 import org.pdown.core.entity.HttpDownConfigInfo;
 import org.pdown.core.entity.HttpRequestInfo;
@@ -123,6 +124,8 @@ public class HttpDownBootstrapBuilder {
       }
       if (StringUtil.isNullOrEmpty(downConfig.getFilePath())) {
         downConfig.setFilePath(System.getProperty("user.dir"));
+      } else {
+        downConfig.setFilePath(Paths.get(downConfig.getFilePath()).toFile().getPath());
       }
       if (StringUtil.isNullOrEmpty(response.getFileName())) {
         response.setFileName("Unknown");
@@ -136,7 +139,7 @@ public class HttpDownBootstrapBuilder {
       if (!response.isSupportRange() || downConfig.getConnections() <= 0) {
         downConfig.setConnections(16);
       }
-      return new HttpDownBootstrap(request, response, downConfig, proxyConfig, taskInfo, loopGroup, callback);
+      return new HttpDownBootstrap(request, response, downConfig, proxyConfig, taskInfo, callback, loopGroup);
     } catch (Exception e) {
       throw new BootstrapBuildException("build HttpDownBootstrap error", e);
     }

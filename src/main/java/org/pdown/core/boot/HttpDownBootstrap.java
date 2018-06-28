@@ -19,6 +19,18 @@ import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.timeout.ReadTimeoutException;
 import io.netty.resolver.NoopAddressResolverGroup;
 import io.netty.util.ReferenceCountUtil;
+import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.pdown.core.constant.HttpDownStatus;
 import org.pdown.core.dispatch.HttpDownCallback;
 import org.pdown.core.entity.ChunkInfo;
@@ -34,18 +46,6 @@ import org.pdown.core.proxy.ProxyHandleFactory;
 import org.pdown.core.util.FileUtil;
 import org.pdown.core.util.HttpDownUtil;
 import org.pdown.core.util.ProtoUtil.RequestProto;
-import java.io.File;
-import java.io.IOException;
-import java.io.Serializable;
-import java.nio.channels.SeekableByteChannel;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,21 +63,21 @@ public class HttpDownBootstrap implements Serializable {
   private ProxyConfig proxyConfig;
   private TaskInfo taskInfo;
   private transient HttpDownCallback callback;
-  protected transient NioEventLoopGroup loopGroup;
+  private transient NioEventLoopGroup loopGroup;
   private transient ProgressThread progressThread;
 
   private HttpDownBootstrap() {
   }
 
-  public HttpDownBootstrap(HttpRequestInfo request, HttpResponseInfo response, HttpDownConfigInfo downConfig, ProxyConfig proxyConfig, TaskInfo taskInfo, NioEventLoopGroup loopGroup,
-      HttpDownCallback callback) {
+  public HttpDownBootstrap(HttpRequestInfo request, HttpResponseInfo response, HttpDownConfigInfo downConfig, ProxyConfig proxyConfig, TaskInfo taskInfo,
+      HttpDownCallback callback, NioEventLoopGroup loopGroup) {
     this.request = request;
     this.response = response;
     this.downConfig = downConfig;
     this.proxyConfig = proxyConfig;
     this.taskInfo = taskInfo;
-    this.loopGroup = loopGroup;
     this.callback = callback;
+    this.loopGroup = loopGroup;
   }
 
   public HttpRequestInfo getRequest() {
@@ -100,46 +100,53 @@ public class HttpDownBootstrap implements Serializable {
     return taskInfo;
   }
 
-  public NioEventLoopGroup getLoopGroup() {
-    return loopGroup;
-  }
-
   public HttpDownCallback getCallback() {
     return callback;
   }
 
-  public void setRequest(HttpRequestInfo request) {
+  public NioEventLoopGroup getLoopGroup() {
+    return loopGroup;
+  }
+
+  public HttpDownBootstrap setRequest(HttpRequestInfo request) {
     this.request = request;
+    return this;
   }
 
-  public void setResponse(HttpResponseInfo response) {
+  public HttpDownBootstrap setResponse(HttpResponseInfo response) {
     this.response = response;
+    return this;
   }
 
-  public void setDownConfig(HttpDownConfigInfo downConfig) {
+  public HttpDownBootstrap setDownConfig(HttpDownConfigInfo downConfig) {
     this.downConfig = downConfig;
+    return this;
   }
 
-  public void setProxyConfig(ProxyConfig proxyConfig) {
+  public HttpDownBootstrap setProxyConfig(ProxyConfig proxyConfig) {
     this.proxyConfig = proxyConfig;
+    return this;
   }
 
-  public void setTaskInfo(TaskInfo taskInfo) {
+  public HttpDownBootstrap setTaskInfo(TaskInfo taskInfo) {
     this.taskInfo = taskInfo;
+    return this;
   }
 
-  public void setLoopGroup(NioEventLoopGroup loopGroup) {
-    this.loopGroup = loopGroup;
-  }
-
-  public void setCallback(HttpDownCallback callback) {
+  public HttpDownBootstrap setCallback(HttpDownCallback callback) {
     this.callback = callback;
+    return this;
+  }
+
+  public HttpDownBootstrap setLoopGroup(NioEventLoopGroup loopGroup) {
+    this.loopGroup = loopGroup;
+    return this;
   }
 
   /**
    * 任务重新开始下载
    */
-  public void startDown() {
+  public void start() {
     taskInfo = new TaskInfo();
     if (downConfig.getFilePath() == null || "".equals(downConfig.getFilePath().trim())) {
       throw new BootstrapException("下载路径不能为空");
@@ -279,7 +286,7 @@ public class HttpDownBootstrap implements Serializable {
   /**
    * 暂停下载
    */
-  public void pauseDown() {
+  public void pause() {
     synchronized (taskInfo) {
       if (taskInfo.getStatus() == HttpDownStatus.PAUSE
           || taskInfo.getStatus() == HttpDownStatus.DONE) {
@@ -303,9 +310,9 @@ public class HttpDownBootstrap implements Serializable {
   /**
    * 继续下载
    */
-  public void continueDown() {
+  public void resume() {
     if (taskInfo == null) {
-      startDown();
+      start();
       return;
     }
     synchronized (taskInfo) {
@@ -315,16 +322,15 @@ public class HttpDownBootstrap implements Serializable {
       }
       if (!FileUtil.exists(HttpDownUtil.getTaskFilePath(this))) {
         close();
-        startDown();
+        start();
       } else {
-        commonStart();
         long time = System.currentTimeMillis();
         for (ChunkInfo chunkInfo : taskInfo.getChunkInfoList()) {
           if (chunkInfo.getStatus() == HttpDownStatus.PAUSE) {
-            chunkInfo.setStatus(HttpDownStatus.RUNNING);
             chunkInfo.setPauseTime(chunkInfo.getPauseTime() + (time - chunkInfo.getLastPauseTime()));
           }
         }
+        commonStart();
         for (ConnectInfo connectInfo : taskInfo.getConnectInfoList()) {
           if (connectInfo.getStatus() == HttpDownStatus.RUNNING) {
             reConnect(connectInfo);
@@ -333,7 +339,7 @@ public class HttpDownBootstrap implements Serializable {
       }
     }
     if (callback != null) {
-      callback.onContinue(this);
+      callback.onResume(this);
     }
   }
 

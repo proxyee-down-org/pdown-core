@@ -115,7 +115,7 @@ public class DownClient {
         builder.proxyConfig(new ProxyConfig(proxyType, proxyArray[0], Integer.parseInt(proxyArray[1])));
       }
       HttpDownBootstrap bootstrap = builder.callback(new ConsoleHttpDownCallback()).build();
-      bootstrap.startDown();
+      bootstrap.start();
     } catch (ParseException e) {
       formatter.printHelp("Unrecognized option", options);
     }
