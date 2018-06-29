@@ -324,6 +324,10 @@ public class HttpDownBootstrap implements Serializable {
         close();
         start();
       } else {
+        if (taskInfo.getDownSize() >= response.getTotalSize()) {
+          taskInfo.setStatus(HttpDownStatus.DONE);
+          return;
+        }
         long time = System.currentTimeMillis();
         for (ChunkInfo chunkInfo : taskInfo.getChunkInfoList()) {
           if (chunkInfo.getStatus() == HttpDownStatus.PAUSE) {
@@ -522,7 +526,7 @@ public class HttpDownBootstrap implements Serializable {
         ch.pipeline().addLast(ProxyHandleFactory.build(proxyConfig));
       }
       if (isSsl) {
-        RequestProto requestProto = ((HttpRequestInfo) request).requestProto();
+        RequestProto requestProto = request.requestProto();
         ch.pipeline().addLast(HttpDownUtil.getSslContext().newHandler(ch.alloc(), requestProto.getHost(), requestProto.getPort()));
       }
       ch.pipeline().addLast("downTimeout", new DownTimeoutHandler(downConfig.getTimeout()));
@@ -552,8 +556,8 @@ public class HttpDownBootstrap implements Serializable {
                 fileChannel.write(byteBuf.nioBuffer());
                 synchronized (chunkInfo) {
                   chunkInfo.setDownSize(chunkInfo.getDownSize() + size);
-                  connectInfo.setDownSize(connectInfo.getDownSize() + size);
                   taskInfo.setDownSize(taskInfo.getDownSize() + size);
+                  connectInfo.setDownSize(connectInfo.getDownSize() + size);
                 }
                 if (downConfig.getSpeedLimit() > 0) {
                   long time = System.nanoTime();
