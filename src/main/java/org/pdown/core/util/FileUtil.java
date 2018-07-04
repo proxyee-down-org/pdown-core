@@ -9,16 +9,24 @@ import java.io.RandomAccessFile;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.file.FileStore;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.AclFileAttributeView;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.Stack;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import javax.swing.filechooser.FileSystemView;
+import org.pdown.core.boot.HttpDownBootstrap;
 
 public class FileUtil {
 
@@ -305,7 +313,7 @@ public class FileUtil {
   /**
    * 创建指定大小的Sparse File
    */
-  public static void createSparseFile(String filePath, long length) throws IOException {
+  public static void createFileWithSparse(String filePath, long length) throws IOException {
     Path path = Paths.get(filePath);
     try {
       Files.deleteIfExists(path);
@@ -318,5 +326,30 @@ public class FileUtil {
     } catch (IOException e) {
       throw new IOException("create spares file fail,path:" + filePath + " length:" + length, e);
     }
+  }
+
+  /**
+   * 使用RandomAccessFile创建指定大小的File
+   */
+  public static void createFileWithDefault(String filePath, long length) throws IOException {
+    Path path = Paths.get(filePath);
+    try {
+      Files.deleteIfExists(path);
+      try (
+          RandomAccessFile randomAccessFile = new RandomAccessFile(filePath, "rw");
+      ) {
+        randomAccessFile.setLength(length);
+      }
+    } catch (IOException e) {
+      throw new IOException("create spares file fail,path:" + filePath + " length:" + length, e);
+    }
+  }
+
+  public static String getSystemFileType(String filePath) throws IOException {
+    File file = new File(filePath);
+    if (!file.exists()) {
+      file = file.getParentFile();
+    }
+    return Files.getFileStore(file.toPath()).type();
   }
 }

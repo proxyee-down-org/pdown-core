@@ -45,6 +45,7 @@ import org.pdown.core.proxy.ProxyConfig;
 import org.pdown.core.proxy.ProxyHandleFactory;
 import org.pdown.core.util.FileUtil;
 import org.pdown.core.util.HttpDownUtil;
+import org.pdown.core.util.OsUtil;
 import org.pdown.core.util.ProtoUtil.RequestProto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -190,7 +191,15 @@ public class HttpDownBootstrap implements Serializable {
     try {
       //创建文件
       if (response.isSupportRange()) {
-        FileUtil.createSparseFile(filePath, response.getTotalSize());
+        String fileSystemType = FileUtil.getSystemFileType(filePath);
+        if (OsUtil.isUnix()
+            || "NTFS".equalsIgnoreCase(fileSystemType)
+            || "UFS".equalsIgnoreCase(fileSystemType)
+            || "APFS".equalsIgnoreCase(fileSystemType)) {
+          FileUtil.createFileWithSparse(filePath, response.getTotalSize());
+        } else {
+          FileUtil.createFileWithDefault(filePath, response.getTotalSize());
+        }
       } else {
         FileUtil.createFile(filePath);
       }
