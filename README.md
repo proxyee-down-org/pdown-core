@@ -1,10 +1,11 @@
 # HTTP high speed downloader
-Using java NIO,fast down and easy to customize.
+[中文](https://github.com/proxyee-down-org/pdown-core/blob/master/README_zh-CN.md)  
+Using java NIO(netty),fast down and easy to customize.
 ## Guide
 ### Create download task  
   To create a download task, need to construct a request and a config.
 ### Request  
-Before downloading, must have a HTTP request.
+Build a HTTP request.
 #### Method
 The default method is GET,We can also use POST,PUT...
 #### Heads
@@ -19,13 +20,13 @@ Accept | text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/
 Referer | {host}
 
 We can customize the request header,when overriding the default value, the default request header will be replaced.  
-*{host} is Domain name parsed from url*
+*{host}:is Domain name parsed from url*
 #### Content
 Set the request body,only support text format.
 ### Response
 Default will request once for response related information,such as support HTTP 206,Content-Length,attach name.  
 If know response Content-Length and name,can create a task directly, without spending a request to resolve the task name and size.
-### Config
+### Option
 Download options.
 
 field | default | desc 
@@ -52,7 +53,7 @@ HttpDownBootstrap.builder()
           .response(new HttpResponseInfo(2048,true))
           .build()
           .start();
-//Set download config
+//Set download option
 HttpDownBootstrap.builder("http://127.0.0.1/static/test.zip")
           .downConfig(new HttpDownConfigInfo().setConnections(32).setAutoRename(true).setSpeedLimit(1024*1024*5L))
           .build()
