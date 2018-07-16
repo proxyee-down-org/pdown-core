@@ -83,6 +83,11 @@ public class DownClient {
         formatter.printHelp("pdDown <url> <options>", options);
         return;
       }
+      String url = line.getOptionValue("U");
+      if(url==null||"".equals(url.trim())){
+        formatter.printHelp("URL can't be empty", options);
+        return;
+      }
       URLHttpDownBootstrapBuilder builder = HttpDownBootstrap.builder(line.getOptionValue("U"));
       String[] headsStr = line.getOptionValues("H");
       if (headsStr != null && headsStr.length > 0) {

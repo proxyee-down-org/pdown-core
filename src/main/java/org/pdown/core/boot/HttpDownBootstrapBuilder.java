@@ -136,7 +136,9 @@ public class HttpDownBootstrapBuilder {
       if (downConfig.getRetryCount() <= 0) {
         downConfig.setRetryCount(5);
       }
-      if (!response.isSupportRange() || downConfig.getConnections() <= 0) {
+      if (!response.isSupportRange()) {
+        downConfig.setConnections(1);
+      } else if (downConfig.getConnections() <= 0) {
         downConfig.setConnections(16);
       }
       return new HttpDownBootstrap(request, response, downConfig, proxyConfig, taskInfo, callback, loopGroup);
