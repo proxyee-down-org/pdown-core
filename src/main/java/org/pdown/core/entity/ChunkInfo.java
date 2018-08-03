@@ -6,12 +6,12 @@ public class ChunkInfo implements Serializable {
 
   private static final long serialVersionUID = 231649750985696846L;
   private int index;
-  private long downSize = 0;
+  private long downSize;
   private long totalSize;
-  private long lastCountSize = 0;
-  private long lastPauseTime = 0;
-  private long pauseTime = 0;
-  private int status = 0;
+  private long lastCountSize;
+  private long lastPauseTime; //最后一次暂停时间
+  private long pauseTime; //总共暂停的时间
+  private int status;
   private long speed;
 
   public int getIndex() {

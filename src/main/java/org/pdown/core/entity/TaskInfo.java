@@ -9,6 +9,7 @@ public class TaskInfo implements Serializable {
   private long downSize;
   private long startTime;
   private long lastStartTime;
+  private long lastPauseTime;
   private int status;
   private long speed;
   private List<ChunkInfo> chunkInfoList;
@@ -34,6 +35,15 @@ public class TaskInfo implements Serializable {
 
   public TaskInfo setLastStartTime(long lastStartTime) {
     this.lastStartTime = lastStartTime;
+    return this;
+  }
+
+  public long getLastPauseTime() {
+    return lastPauseTime;
+  }
+
+  public TaskInfo setLastPauseTime(long lastPauseTime) {
+    this.lastPauseTime = lastPauseTime;
     return this;
   }
 

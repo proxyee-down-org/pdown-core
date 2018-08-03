@@ -6,7 +6,7 @@
 
   <groupId>org.pdown</groupId>
   <artifactId>core</artifactId>
-  <version>1.0</version>
+  <version>1.0.1</version>
 
   <name>pdown-core</name>
   <description>HTTP high speed downloader</description>

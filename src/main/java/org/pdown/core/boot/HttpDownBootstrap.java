@@ -39,7 +39,12 @@ import org.pdown.core.entity.HttpDownConfigInfo;
 import org.pdown.core.entity.HttpRequestInfo;
 import org.pdown.core.entity.HttpResponseInfo;
 import org.pdown.core.entity.TaskInfo;
+import org.pdown.core.exception.BootstrapCreateDirException;
 import org.pdown.core.exception.BootstrapException;
+import org.pdown.core.exception.BootstrapFileAlreadyExistsException;
+import org.pdown.core.exception.BootstrapPathEmptyException;
+import org.pdown.core.exception.BootstrapNoPermissionException;
+import org.pdown.core.exception.BootstrapNoSpaceException;
 import org.pdown.core.handle.DownTimeoutHandler;
 import org.pdown.core.proxy.ProxyConfig;
 import org.pdown.core.proxy.ProxyHandleFactory;
@@ -148,25 +153,33 @@ public class HttpDownBootstrap implements Serializable {
    * 任务重新开始下载
    */
   public void start() {
+    long startTime = 0;
+    long lastPauseTime = 0;
+    if (taskInfo != null && taskInfo.getStatus() == HttpDownStatus.WAIT) {
+      startTime = taskInfo.getStartTime();
+      lastPauseTime = System.currentTimeMillis();
+    }
     taskInfo = new TaskInfo();
+    taskInfo.setStartTime(startTime);
+    taskInfo.setLastPauseTime(lastPauseTime);
     if (downConfig.getFilePath() == null || "".equals(downConfig.getFilePath().trim())) {
-      throw new BootstrapException("下载路径不能为空");
+      throw new BootstrapPathEmptyException("下载路径不能为空");
     }
     String filePath = HttpDownUtil.getTaskFilePath(this);
     try {
       if (!FileUtil.exists(downConfig.getFilePath())) {
         try {
-          FileUtil.createDirSmart(downConfig.getFilePath());
+          Files.createDirectories(Paths.get(downConfig.getFilePath()));
         } catch (IOException e) {
-          throw new BootstrapException("创建目录失败，请重试", e);
+          throw new BootstrapCreateDirException("创建目录失败，请重试", e);
         }
       }
       if (!FileUtil.canWrite(downConfig.getFilePath())) {
-        throw new BootstrapException("无权访问下载路径，请修改路径或开放目录写入权限");
+        throw new BootstrapNoPermissionException("无权访问下载路径，请修改路径或开放目录写入权限");
       }
       //磁盘空间不足
       if (response.getTotalSize() > FileUtil.getDiskFreeSize(downConfig.getFilePath())) {
-        throw new BootstrapException("磁盘空间不足，请修改路径");
+        throw new BootstrapNoSpaceException("磁盘空间不足，请修改路径");
       }
       //有文件同名
       if (new File(filePath).exists()) {
@@ -174,7 +187,7 @@ public class HttpDownBootstrap implements Serializable {
           response.setFileName(FileUtil.renameIfExists(filePath));
           filePath = HttpDownUtil.getTaskFilePath(this);
         } else {
-          throw new BootstrapException("文件名已存在，请修改文件名");
+          throw new BootstrapFileAlreadyExistsException("文件名已存在，请修改文件名");
         }
       }
     } catch (BootstrapException e) {
@@ -208,7 +221,9 @@ public class HttpDownBootstrap implements Serializable {
     }
     buildChunkInfoList();
     commonStart();
-    taskInfo.setStartTime(System.currentTimeMillis());
+    if (taskInfo.getStartTime() <= 0) {
+      taskInfo.setStartTime(System.currentTimeMillis());
+    }
     //文件下载开始回调
     if (callback != null) {
       request.headers().remove(HttpHeaderNames.RANGE);
@@ -301,8 +316,9 @@ public class HttpDownBootstrap implements Serializable {
           || taskInfo.getStatus() == HttpDownStatus.DONE) {
         return;
       }
-      taskInfo.setStatus(HttpDownStatus.PAUSE);
       long time = System.currentTimeMillis();
+      taskInfo.setStatus(HttpDownStatus.PAUSE);
+      taskInfo.setLastPauseTime(time);
       for (ChunkInfo chunkInfo : taskInfo.getChunkInfoList()) {
         if (chunkInfo.getStatus() != HttpDownStatus.DONE) {
           chunkInfo.setStatus(HttpDownStatus.PAUSE);
@@ -320,7 +336,7 @@ public class HttpDownBootstrap implements Serializable {
    * 继续下载
    */
   public void resume() {
-    if (taskInfo == null) {
+    if (taskInfo == null || taskInfo.getStatus() == HttpDownStatus.WAIT) {
       start();
       return;
     }
@@ -430,6 +446,10 @@ public class HttpDownBootstrap implements Serializable {
         }
         long end = start + chunkSize - 1;
         chunkInfo.setTotalSize(chunkSize);
+        if (taskInfo.getLastPauseTime() > 0) {
+          chunkInfo.setLastPauseTime(taskInfo.getLastPauseTime());
+          chunkInfo.setPauseTime(taskInfo.getLastPauseTime() - taskInfo.getStartTime());
+        }
         chunkInfoList.add(chunkInfo);
 
         connectInfo.setChunkIndex(i);
@@ -442,6 +462,10 @@ public class HttpDownBootstrap implements Serializable {
       ConnectInfo connectInfo = new ConnectInfo();
       connectInfo.setChunkIndex(0);
       chunkInfo.setIndex(0);
+      if (taskInfo.getLastPauseTime() > 0) {
+        chunkInfo.setLastPauseTime(taskInfo.getLastPauseTime());
+        chunkInfo.setPauseTime(taskInfo.getLastPauseTime() - taskInfo.getStartTime());
+      }
       chunkInfoList.add(chunkInfo);
       connectInfoList.add(connectInfo);
     }
@@ -603,6 +627,10 @@ public class HttpDownBootstrap implements Serializable {
                   //判断分段是否下载完成
                   if (isChunkDownDone(httpContent)) {
                     LOGGER.debug("分段下载完成：" + connectInfo + "\t" + chunkInfo);
+                    if (!response.isSupportRange()) {  //chunked编码最后更新文件大小
+                      chunkInfo.setTotalSize(taskInfo.getDownSize());
+                      response.setTotalSize(taskInfo.getDownSize());
+                    }
                     synchronized (chunkInfo) {
                       chunkInfo.setStatus(HttpDownStatus.DONE);
                       //计算最后平均下载速度
@@ -614,16 +642,15 @@ public class HttpDownBootstrap implements Serializable {
                     }
                     //所有分段都下载完成
                     if (taskInfo.getChunkInfoList().stream().allMatch((chunk) -> chunk.getStatus() == HttpDownStatus.DONE)) {
-                      if (!response.isSupportRange()) {  //chunked编码最后更新文件大小
-                        response.setTotalSize(taskInfo.getDownSize());
-                        taskInfo.getChunkInfoList().get(0).setTotalSize(taskInfo.getDownSize());
-                      }
                       //文件下载完成回调
                       LOGGER.debug("任务下载完成：" + chunkInfo);
                       connectInfo.setStatus(HttpDownStatus.DONE);
                       taskInfo.setStatus(HttpDownStatus.DONE);
-                      //计算平均速度
-                      taskInfo.setSpeed(calcSpeed(response.getTotalSize(), System.currentTimeMillis() - taskInfo.getStartTime()));
+                      //计算平均速度(所有分段的平均速度之和)
+                      taskInfo.setSpeed(taskInfo.getChunkInfoList()
+                          .stream()
+                          .mapToLong(chunk -> chunk.getSpeed())
+                          .sum());
                       done();
                       return;
                     }
