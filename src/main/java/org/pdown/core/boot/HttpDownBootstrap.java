@@ -284,6 +284,9 @@ public class HttpDownBootstrap implements Serializable {
    * @param isHelp 是否为帮助其他分段下载发起的连接
    */
   private void reConnect(ConnectInfo connectInfo, boolean isHelp) {
+    if (connectInfo.getConnectChannel() != null && !connectInfo.getConnectChannel().isOpen()) {
+      return;
+    }
     if (!isHelp && response.isSupportRange()) {
       connectInfo.setStartPosition(connectInfo.getStartPosition() + connectInfo.getDownSize());
     }
@@ -398,10 +401,14 @@ public class HttpDownBootstrap implements Serializable {
   }
 
   private void stopThreads() {
-    loopGroup.shutdownGracefully();
-    loopGroup = null;
-    progressThread.close();
-    progressThread = null;
+    if (loopGroup != null) {
+      loopGroup.shutdownGracefully();
+      loopGroup = null;
+    }
+    if (progressThread != null) {
+      progressThread.close();
+      progressThread = null;
+    }
   }
 
   private void commonStart() {

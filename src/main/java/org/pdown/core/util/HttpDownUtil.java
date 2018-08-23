@@ -23,14 +23,6 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.resolver.NoopAddressResolverGroup;
-import org.pdown.core.boot.HttpDownBootstrap;
-import org.pdown.core.entity.HttpHeadsInfo;
-import org.pdown.core.entity.HttpRequestInfo;
-import org.pdown.core.entity.HttpRequestInfo.HttpVer;
-import org.pdown.core.entity.HttpResponseInfo;
-import org.pdown.core.proxy.ProxyConfig;
-import org.pdown.core.proxy.ProxyHandleFactory;
-import org.pdown.core.util.ProtoUtil.RequestProto;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -46,6 +38,14 @@ import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.net.ssl.SSLException;
+import org.pdown.core.boot.HttpDownBootstrap;
+import org.pdown.core.entity.HttpHeadsInfo;
+import org.pdown.core.entity.HttpRequestInfo;
+import org.pdown.core.entity.HttpRequestInfo.HttpVer;
+import org.pdown.core.entity.HttpResponseInfo;
+import org.pdown.core.proxy.ProxyConfig;
+import org.pdown.core.proxy.ProxyHandleFactory;
+import org.pdown.core.util.ProtoUtil.RequestProto;
 
 public class HttpDownUtil {
 
@@ -145,6 +145,8 @@ public class HttpDownUtil {
       Matcher matcher = pattern.matcher(httpRequest.uri());
       if (matcher.find()) {
         fileName = matcher.group(1);
+      } else {
+        fileName = "Unknown";
       }
     }
     return fileName;
@@ -263,7 +265,7 @@ public class HttpDownUtil {
    * 关闭tcp连接和文件描述符
    */
   public static void safeClose(Channel channel, Closeable... fileChannels) throws IOException {
-    if (channel != null) {
+    if (channel != null && channel.isOpen()) {
       //关闭旧的下载连接
       channel.close();
     }
@@ -296,7 +298,7 @@ public class HttpDownUtil {
       content = body.getBytes();
       headsInfo.add("Content-Length", content.length);
     }
-    HttpRequestInfo requestInfo = new HttpRequestInfo(HttpVer.HTTP_1_1, HttpMethod.GET, url, headsInfo, content);
+    HttpRequestInfo requestInfo = new HttpRequestInfo(HttpVer.HTTP_1_1, HttpMethod.GET, u.getFile(), headsInfo, content);
     requestInfo.setRequestProto(ProtoUtil.getRequestProto(requestInfo));
     return requestInfo;
   }
