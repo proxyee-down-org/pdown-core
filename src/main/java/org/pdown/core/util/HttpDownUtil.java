@@ -43,6 +43,7 @@ import org.pdown.core.entity.HttpHeadsInfo;
 import org.pdown.core.entity.HttpRequestInfo;
 import org.pdown.core.entity.HttpRequestInfo.HttpVer;
 import org.pdown.core.entity.HttpResponseInfo;
+import org.pdown.core.exception.BootstrapResolveException;
 import org.pdown.core.proxy.ProxyConfig;
 import org.pdown.core.proxy.ProxyHandleFactory;
 import org.pdown.core.util.ProtoUtil.RequestProto;
@@ -114,6 +115,10 @@ public class HttpDownUtil {
       if (httpResponse.status().equals(HttpResponseStatus.PARTIAL_CONTENT)) {
         responseInfo.setSupportRange(true);
       }
+    }
+    if (httpResponse.status() != HttpResponseStatus.OK
+        && httpResponse.status() != HttpResponseStatus.PARTIAL_CONTENT) {
+      throw new BootstrapResolveException("Status code exception:" + httpResponse.status());
     }
     return responseInfo;
   }

@@ -42,9 +42,9 @@ import org.pdown.core.entity.TaskInfo;
 import org.pdown.core.exception.BootstrapCreateDirException;
 import org.pdown.core.exception.BootstrapException;
 import org.pdown.core.exception.BootstrapFileAlreadyExistsException;
-import org.pdown.core.exception.BootstrapPathEmptyException;
 import org.pdown.core.exception.BootstrapNoPermissionException;
 import org.pdown.core.exception.BootstrapNoSpaceException;
+import org.pdown.core.exception.BootstrapPathEmptyException;
 import org.pdown.core.handle.DownTimeoutHandler;
 import org.pdown.core.proxy.ProxyConfig;
 import org.pdown.core.proxy.ProxyHandleFactory;
@@ -284,9 +284,6 @@ public class HttpDownBootstrap implements Serializable {
    * @param isHelp 是否为帮助其他分段下载发起的连接
    */
   private void reConnect(ConnectInfo connectInfo, boolean isHelp) {
-    if (connectInfo.getConnectChannel() != null && !connectInfo.getConnectChannel().isOpen()) {
-      return;
-    }
     if (!isHelp && response.isSupportRange()) {
       connectInfo.setStartPosition(connectInfo.getStartPosition() + connectInfo.getDownSize());
     }

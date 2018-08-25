@@ -7,6 +7,7 @@ import org.pdown.core.dispatch.ConsoleHttpDownCallback;
 import org.pdown.core.entity.HttpDownConfigInfo;
 import org.pdown.core.entity.HttpResponseInfo;
 import org.pdown.core.exception.BootstrapBuildException;
+import org.pdown.core.exception.BootstrapResolveException;
 import org.pdown.core.proxy.ProxyConfig;
 import org.pdown.core.proxy.ProxyType;
 import java.util.LinkedHashMap;
@@ -84,7 +85,7 @@ public class DownClient {
         return;
       }
       String url = line.getOptionValue("U");
-      if(url==null||"".equals(url.trim())){
+      if (url == null || "".equals(url.trim())) {
         formatter.printHelp("URL can't be empty", options);
         return;
       }
@@ -132,6 +133,8 @@ public class DownClient {
     } catch (BootstrapBuildException e) {
       if (e.getCause() instanceof TimeoutException) {
         System.out.println("Connection failed, please check the network.");
+      } else if (e.getCause() instanceof BootstrapResolveException) {
+        System.out.println(e.getCause().getMessage());
       } else {
         e.printStackTrace();
       }
