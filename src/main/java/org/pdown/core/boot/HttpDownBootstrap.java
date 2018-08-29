@@ -284,6 +284,9 @@ public class HttpDownBootstrap implements Serializable {
    * @param isHelp 是否为帮助其他分段下载发起的连接
    */
   private void reConnect(ConnectInfo connectInfo, boolean isHelp) {
+    if (loopGroup == null) {
+      return;
+    }
     if (!isHelp && response.isSupportRange()) {
       connectInfo.setStartPosition(connectInfo.getStartPosition() + connectInfo.getDownSize());
     }
@@ -315,6 +318,9 @@ public class HttpDownBootstrap implements Serializable {
       if (taskInfo.getStatus() == HttpDownStatus.PAUSE
           || taskInfo.getStatus() == HttpDownStatus.DONE) {
         return;
+      }
+      if (taskInfo.getStatus() == HttpDownStatus.WAIT) {
+        buildChunkInfoList();
       }
       long time = System.currentTimeMillis();
       taskInfo.setStatus(HttpDownStatus.PAUSE);
@@ -411,6 +417,7 @@ public class HttpDownBootstrap implements Serializable {
   private void commonStart() {
     taskInfo.setStatus(HttpDownStatus.RUNNING);
     taskInfo.setLastStartTime(0);
+    taskInfo.setLastDownSize(taskInfo.getDownSize());
     taskInfo.getChunkInfoList().forEach(chunkInfo -> {
       if (chunkInfo.getStatus() != HttpDownStatus.DONE) {
         chunkInfo.setStatus(HttpDownStatus.RUNNING);
@@ -601,9 +608,9 @@ public class HttpDownBootstrap implements Serializable {
                   if (taskInfo.getLastStartTime() <= 0) {
                     taskInfo.setLastStartTime(time);
                   } else {
-                    //计算平均速度是否超过速度限制
+                    //计算下载速度是否超过速度限制
                     long useTime = time - taskInfo.getLastStartTime();
-                    double speed = taskInfo.getDownSize() / (double) useTime;
+                    double speed = (taskInfo.getDownSize() - taskInfo.getLastDownSize()) / (double) useTime;
                     double limitSpeed = downConfig.getSpeedLimit() / TIME_1S_NANO;
                     long sleepTime = (long) ((speed - limitSpeed) * useTime);
                     if (sleepTime > 0) {

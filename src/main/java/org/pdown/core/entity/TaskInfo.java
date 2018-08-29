@@ -8,7 +8,8 @@ public class TaskInfo implements Serializable {
   private static final long serialVersionUID = 4813413517396555930L;
   private long downSize;
   private long startTime;
-  private long lastStartTime;
+  private transient long lastStartTime;
+  private transient long lastDownSize;
   private long lastPauseTime;
   private int status;
   private long speed;
@@ -35,6 +36,15 @@ public class TaskInfo implements Serializable {
 
   public TaskInfo setLastStartTime(long lastStartTime) {
     this.lastStartTime = lastStartTime;
+    return this;
+  }
+
+  public long getLastDownSize() {
+    return lastDownSize;
+  }
+
+  public TaskInfo setLastDownSize(long lastDownSize) {
+    this.lastDownSize = lastDownSize;
     return this;
   }
 
