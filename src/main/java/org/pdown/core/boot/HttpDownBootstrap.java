@@ -388,8 +388,10 @@ public class HttpDownBootstrap implements Serializable {
 
   public void close() {
     synchronized (taskInfo) {
-      for (ConnectInfo connectInfo : taskInfo.getConnectInfoList()) {
-        close(connectInfo);
+      if (taskInfo.getConnectInfoList() != null) {
+        for (ConnectInfo connectInfo : taskInfo.getConnectInfoList()) {
+          close(connectInfo);
+        }
       }
     }
     stopThreads();
