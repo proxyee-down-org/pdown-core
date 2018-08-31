@@ -263,6 +263,7 @@ public class HttpDownUtil {
     if (httpResponses[0] == null) {
       throw new TimeoutException("getResponse timeout");
     }
+    httpRequest.headers().remove(HttpHeaderNames.RANGE);
     return httpResponses[0];
   }
 
@@ -304,7 +305,8 @@ public class HttpDownUtil {
       headsInfo.add("Content-Length", content.length);
     }
     HttpRequestInfo requestInfo = new HttpRequestInfo(HttpVer.HTTP_1_1, HttpMethod.GET, u.getFile(), headsInfo, content);
-    requestInfo.setRequestProto(ProtoUtil.getRequestProto(requestInfo));
+    int port = u.getPort() == -1 ? u.getDefaultPort() : u.getPort();
+    requestInfo.setRequestProto(new RequestProto(u.getHost(), port, u.getProtocol().equalsIgnoreCase("https")));
     return requestInfo;
   }
 
