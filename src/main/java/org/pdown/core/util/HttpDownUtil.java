@@ -101,26 +101,15 @@ public class HttpDownUtil {
         requestInfo.setRequestProto(requestProto);
         return getHttpResponseInfo(httpRequest, null, proxyConfig, loopGroup);
       }
-      resHeaders = httpResponse.headers();
     }
-    HttpResponseInfo responseInfo = new HttpResponseInfo();
-    responseInfo.setFileName(getDownFileName(httpRequest, resHeaders));
-    responseInfo.setTotalSize(getDownFileSize(resHeaders));
-    //chunked编码不支持断点下载
-    if (resHeaders.contains(HttpHeaderNames.CONTENT_LENGTH)) {
-      if (httpResponse == null) {
-        httpResponse = getResponse(httpRequest, proxyConfig, loopGroup);
-      }
-      //206表示支持断点下载
-      if (httpResponse.status().equals(HttpResponseStatus.PARTIAL_CONTENT)) {
-        responseInfo.setSupportRange(true);
-      }
+    if (httpResponse == null) {
+      httpResponse = getResponse(httpRequest, proxyConfig, loopGroup);
     }
     if (httpResponse.status() != HttpResponseStatus.OK
         && httpResponse.status() != HttpResponseStatus.PARTIAL_CONTENT) {
       throw new BootstrapResolveException("Status code exception:" + httpResponse.status());
     }
-    return responseInfo;
+    return parseResponse(httpRequest, httpResponse);
   }
 
   public static String getDownFileName(HttpRequest httpRequest, HttpHeaders resHeaders) {
@@ -197,6 +186,20 @@ public class HttpDownUtil {
       }
     }
     return 0;
+  }
+
+  public static HttpResponseInfo parseResponse(HttpRequest httpRequest, HttpResponse httpResponse) {
+    HttpResponseInfo responseInfo = new HttpResponseInfo();
+    responseInfo.setFileName(getDownFileName(httpRequest, httpResponse.headers()));
+    responseInfo.setTotalSize(getDownFileSize(httpResponse.headers()));
+    //chunked编码不支持断点下载
+    if (httpResponse.headers().contains(HttpHeaderNames.CONTENT_LENGTH)) {
+      //206表示支持断点下载
+      if (httpResponse.status().equals(HttpResponseStatus.PARTIAL_CONTENT)) {
+        responseInfo.setSupportRange(true);
+      }
+    }
+    return responseInfo;
   }
 
   /**
