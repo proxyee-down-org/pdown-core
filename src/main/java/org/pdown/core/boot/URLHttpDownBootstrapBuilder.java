@@ -13,15 +13,25 @@ import java.util.Map;
  */
 public class URLHttpDownBootstrapBuilder extends HttpDownBootstrapBuilder {
 
+  private String method;
   private String url;
   private Map<String, String> heads;
   private String body;
 
-
-  public URLHttpDownBootstrapBuilder(String url, Map<String, String> heads, String body) {
+  public URLHttpDownBootstrapBuilder(String method, String url, Map<String, String> heads, String body) {
+    this.method = method;
     this.url = url;
     this.heads = heads;
     this.body = body;
+  }
+
+  public URLHttpDownBootstrapBuilder(String url, Map<String, String> heads, String body) {
+    this(null, url, heads, body);
+  }
+
+  public URLHttpDownBootstrapBuilder method(String method) {
+    this.method = method;
+    return this;
   }
 
   public URLHttpDownBootstrapBuilder url(String url) {
@@ -42,7 +52,7 @@ public class URLHttpDownBootstrapBuilder extends HttpDownBootstrapBuilder {
   @Override
   public HttpDownBootstrap build() {
     try {
-      HttpRequestInfo request = HttpDownUtil.buildGetRequest(url, heads, body);
+      HttpRequestInfo request = HttpDownUtil.buildRequest(method, url, heads, body);
       request(request);
       if (getLoopGroup() == null) {
         loopGroup(new NioEventLoopGroup(1));

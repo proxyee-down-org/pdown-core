@@ -23,6 +23,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.resolver.NoopAddressResolverGroup;
+import io.netty.util.internal.StringUtil;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -105,9 +106,9 @@ public class HttpDownUtil {
     if (httpResponse == null) {
       httpResponse = getResponse(httpRequest, proxyConfig, loopGroup);
     }
-    if (httpResponse.status() != HttpResponseStatus.OK
-        && httpResponse.status() != HttpResponseStatus.PARTIAL_CONTENT) {
-      throw new BootstrapResolveException("Status code exception:" + httpResponse.status());
+    if (httpResponse.status().code() != HttpResponseStatus.OK.code()
+        && httpResponse.status().code() != HttpResponseStatus.PARTIAL_CONTENT.code()) {
+      throw new BootstrapResolveException("Status code exception:" + httpResponse.status().code());
     }
     return parseResponse(httpRequest, httpResponse);
   }
@@ -262,7 +263,7 @@ public class HttpDownUtil {
         cdl.countDown();
       }
     });
-    cdl.await(30, TimeUnit.SECONDS);
+    cdl.await(60, TimeUnit.SECONDS);
     if (httpResponses[0] == null) {
       throw new TimeoutException("getResponse timeout");
     }
@@ -288,7 +289,7 @@ public class HttpDownUtil {
     }
   }
 
-  public static HttpRequestInfo buildGetRequest(String url, Map<String, String> heads, String body)
+  public static HttpRequestInfo buildRequest(String method, String url, Map<String, String> heads, String body)
       throws MalformedURLException {
     URL u = new URL(url);
     HttpHeadsInfo headsInfo = new HttpHeadsInfo();
@@ -307,20 +308,26 @@ public class HttpDownUtil {
       content = body.getBytes();
       headsInfo.add("Content-Length", content.length);
     }
-    HttpRequestInfo requestInfo = new HttpRequestInfo(HttpVer.HTTP_1_1, HttpMethod.GET, u.getFile(), headsInfo, content);
+    HttpMethod httpMethod = StringUtil.isNullOrEmpty(method) ? HttpMethod.GET : HttpMethod.valueOf(method.toUpperCase());
+    HttpRequestInfo requestInfo = new HttpRequestInfo(HttpVer.HTTP_1_1, httpMethod, u.getFile(), headsInfo, content);
     int port = u.getPort() == -1 ? u.getDefaultPort() : u.getPort();
     requestInfo.setRequestProto(new RequestProto(u.getHost(), port, u.getProtocol().equalsIgnoreCase("https")));
     return requestInfo;
   }
 
-  public static HttpRequestInfo buildGetRequest(String url, Map<String, String> heads)
+  public static HttpRequestInfo buildRequest(String url, Map<String, String> heads, String body)
       throws MalformedURLException {
-    return buildGetRequest(url, heads, null);
+    return buildRequest(null, url, heads, body);
   }
 
-  public static HttpRequestInfo buildGetRequest(String url)
+  public static HttpRequestInfo buildRequest(String url, Map<String, String> heads)
       throws MalformedURLException {
-    return buildGetRequest(url, null, null);
+    return buildRequest(url, heads, null);
+  }
+
+  public static HttpRequestInfo buildRequest(String url)
+      throws MalformedURLException {
+    return buildRequest(url, null);
   }
 
   /**

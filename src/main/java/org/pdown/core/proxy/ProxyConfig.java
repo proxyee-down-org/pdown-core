@@ -12,10 +12,7 @@ public class ProxyConfig implements Serializable {
   private String user;
   private String pwd;
 
-  public ProxyConfig(ProxyType proxyType, String host, int port) {
-    this.proxyType = proxyType;
-    this.host = host;
-    this.port = port;
+  public ProxyConfig() {
   }
 
   public ProxyConfig(ProxyType proxyType, String host, int port, String user, String pwd) {
@@ -24,6 +21,12 @@ public class ProxyConfig implements Serializable {
     this.port = port;
     this.user = user;
     this.pwd = pwd;
+  }
+
+  public ProxyConfig(ProxyType proxyType, String host, int port) {
+    this.proxyType = proxyType;
+    this.host = host;
+    this.port = port;
   }
 
   public ProxyType getProxyType() {

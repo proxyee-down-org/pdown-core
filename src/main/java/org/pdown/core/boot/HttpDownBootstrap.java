@@ -69,8 +69,8 @@ public class HttpDownBootstrap implements Serializable {
   private ProxyConfig proxyConfig;
   private TaskInfo taskInfo;
   private transient HttpDownCallback callback;
-  private transient NioEventLoopGroup loopGroup;
-  private transient ProgressThread progressThread;
+  private transient volatile NioEventLoopGroup loopGroup;
+  private transient volatile ProgressThread progressThread;
 
   private HttpDownBootstrap() {
   }
@@ -499,6 +499,10 @@ public class HttpDownBootstrap implements Serializable {
 
   public static HttpDownBootstrapBuilder builder() {
     return new HttpDownBootstrapBuilder();
+  }
+
+  public static URLHttpDownBootstrapBuilder builder(String method, String url, Map<String, String> heads, String body) {
+    return new URLHttpDownBootstrapBuilder(method, url, heads, body);
   }
 
   public static URLHttpDownBootstrapBuilder builder(String url, Map<String, String> heads, String body) {
