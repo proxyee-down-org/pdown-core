@@ -19,9 +19,11 @@ import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.timeout.ReadTimeoutException;
 import io.netty.resolver.NoopAddressResolverGroup;
 import io.netty.util.ReferenceCountUtil;
+import io.netty.util.internal.StringUtil;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URL;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -152,7 +154,7 @@ public class HttpDownBootstrap implements Serializable {
   /**
    * 任务重新开始下载
    */
-  public void start() {
+  private void start(boolean isResume) {
     long startTime = 0;
     long lastPauseTime = 0;
     if (taskInfo != null && taskInfo.getStatus() == HttpDownStatus.WAIT) {
@@ -182,8 +184,12 @@ public class HttpDownBootstrap implements Serializable {
         throw new BootstrapNoSpaceException("磁盘空间不足，请修改路径");
       }
       //有文件同名
-      if (new File(filePath).exists()) {
-        if (downConfig.isAutoRename()) {
+      File downFile = new File(filePath);
+      if (downFile.exists()) {
+        //没有进度记录继续下载时，如果存在相同文件则删除重新下载
+        if (isResume) {
+          downFile.delete();
+        } else if (downConfig.isAutoRename()) {
           response.setFileName(FileUtil.renameIfExists(filePath));
           filePath = HttpDownUtil.getTaskFilePath(this);
         } else {
@@ -233,6 +239,10 @@ public class HttpDownBootstrap implements Serializable {
       ConnectInfo connectInfo = taskInfo.getConnectInfoList().get(i);
       connect(connectInfo);
     }
+  }
+
+  public void start() {
+    start(false);
   }
 
   private void connect(ConnectInfo connectInfo) {
@@ -319,9 +329,6 @@ public class HttpDownBootstrap implements Serializable {
           || taskInfo.getStatus() == HttpDownStatus.DONE) {
         return;
       }
-      if (taskInfo.getStatus() == HttpDownStatus.WAIT) {
-        buildChunkInfoList();
-      }
       long time = System.currentTimeMillis();
       taskInfo.setStatus(HttpDownStatus.PAUSE);
       taskInfo.setLastPauseTime(time);
@@ -342,8 +349,9 @@ public class HttpDownBootstrap implements Serializable {
    * 继续下载
    */
   public void resume() {
-    if (taskInfo == null || taskInfo.getStatus() == HttpDownStatus.WAIT) {
-      start();
+    if (taskInfo == null) {
+      //下载进度信息不存在
+      start(true);
       return;
     }
     synchronized (taskInfo) {
@@ -447,6 +455,10 @@ public class HttpDownBootstrap implements Serializable {
     List<ChunkInfo> chunkInfoList = new ArrayList<>();
     List<ConnectInfo> connectInfoList = new ArrayList<>();
     if (response.getTotalSize() > 0) {  //非chunked编码
+      //如果文件太小，连接数过高，则调整连接数量
+      if (response.getTotalSize() < downConfig.getConnections()) {
+        downConfig.setConnections((int) response.getTotalSize());
+      }
       //计算chunk列表
       long chunkSize = response.getTotalSize() / downConfig.getConnections();
       for (int i = 0; i < downConfig.getConnections(); i++) {
@@ -708,7 +720,20 @@ public class HttpDownBootstrap implements Serializable {
               Integer responseCode = httpResponse.status().code();
               if (responseCode < 200 || responseCode >= 300) {
                 LOGGER.warn("响应状态码异常：" + responseCode + "\t" + connectInfo);
-                if (responseCode >= 500) {
+                //处理重定向链接
+                if (responseCode >= 300 && responseCode < 400) {
+                  String location = httpResponse.headers().get(HttpHeaderNames.LOCATION);
+                  if (!StringUtil.isNullOrEmpty(location)) {
+                    if (location.matches("^(?i)(https?).*")) {
+                      URL url = new URL(location);
+                      request.setUri(url.getFile());
+                      request.headers().set(HttpHeaderNames.HOST, url.getHost());
+                      request.setRequestProto(HttpDownUtil.parseRequestProto(url));
+                    } else {
+                      request.setUri(location);
+                    }
+                  }
+                } else {
                   connectInfo.setErrorCount(connectInfo.getErrorCount() + 1);
                 }
                 normalClose = true;

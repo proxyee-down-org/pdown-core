@@ -289,6 +289,15 @@ public class HttpDownUtil {
     }
   }
 
+  public static RequestProto parseRequestProto(String url) throws MalformedURLException {
+    return parseRequestProto(new URL(url));
+  }
+
+  public static RequestProto parseRequestProto(URL url) {
+    int port = url.getPort() == -1 ? url.getDefaultPort() : url.getPort();
+    return new RequestProto(url.getHost(), port, url.getProtocol().equalsIgnoreCase("https"));
+  }
+
   public static HttpRequestInfo buildRequest(String method, String url, Map<String, String> heads, String body)
       throws MalformedURLException {
     URL u = new URL(url);
@@ -300,7 +309,7 @@ public class HttpDownUtil {
     headsInfo.add("Referer", u.getHost());
     if (heads != null) {
       for (Entry<String, String> entry : heads.entrySet()) {
-        headsInfo.set(entry.getKey(), entry.getValue());
+        headsInfo.set(entry.getKey(), entry.getValue() == null ? "" : entry.getValue());
       }
     }
     byte[] content = null;
@@ -310,8 +319,7 @@ public class HttpDownUtil {
     }
     HttpMethod httpMethod = StringUtil.isNullOrEmpty(method) ? HttpMethod.GET : HttpMethod.valueOf(method.toUpperCase());
     HttpRequestInfo requestInfo = new HttpRequestInfo(HttpVer.HTTP_1_1, httpMethod, u.getFile(), headsInfo, content);
-    int port = u.getPort() == -1 ? u.getDefaultPort() : u.getPort();
-    requestInfo.setRequestProto(new RequestProto(u.getHost(), port, u.getProtocol().equalsIgnoreCase("https")));
+    requestInfo.setRequestProto(parseRequestProto(u));
     return requestInfo;
   }
 
