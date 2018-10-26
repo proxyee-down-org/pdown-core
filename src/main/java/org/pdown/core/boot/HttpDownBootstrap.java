@@ -311,7 +311,9 @@ public class HttpDownBootstrap implements Serializable {
           .filter(connect -> connect.getStatus() != HttpDownStatus.DONE)
           .allMatch(connect -> connect.getErrorCount() >= downConfig.getRetryCount())) {
         taskInfo.setStatus(HttpDownStatus.ERROR);
-        taskInfo.getChunkInfoList().forEach(chunkInfo -> chunkInfo.setStatus(HttpDownStatus.ERROR));
+        taskInfo.getChunkInfoList().stream()
+            .filter(chunk -> chunk.getStatus() != HttpDownStatus.DONE)
+            .forEach(chunkInfo -> chunkInfo.setStatus(HttpDownStatus.ERROR));
         close();
         if (callback != null) {
           callback.onError(this);
@@ -349,7 +351,7 @@ public class HttpDownBootstrap implements Serializable {
    * 继续下载
    */
   public void resume() {
-    if (taskInfo == null) {
+    if (taskInfo == null || taskInfo.getChunkInfoList() == null) {
       //下载进度信息不存在
       start(true);
       return;
@@ -670,7 +672,7 @@ public class HttpDownBootstrap implements Serializable {
                       callback.onChunkDone(HttpDownBootstrap.this, chunkInfo);
                     }
                     //所有分段都下载完成
-                    if (taskInfo.getChunkInfoList().stream().allMatch((chunk) -> chunk.getStatus() == HttpDownStatus.DONE)) {
+                    if (taskInfo.getChunkInfoList().stream().allMatch(chunk -> chunk.getStatus() == HttpDownStatus.DONE)) {
                       //文件下载完成回调
                       LOGGER.debug("任务下载完成：" + chunkInfo);
                       connectInfo.setStatus(HttpDownStatus.DONE);
