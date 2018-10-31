@@ -338,6 +338,21 @@ public class HttpDownUtil {
     return buildRequest(url, null);
   }
 
+  public static String getUrl(HttpRequest request) {
+    String host = request.headers().get(HttpHeaderNames.HOST);
+    String url;
+    if (request.uri().indexOf("/") == 0) {
+      if (request.uri().length() > 1) {
+        url = host + request.uri();
+      } else {
+        url = host;
+      }
+    } else {
+      url = request.uri();
+    }
+    return url;
+  }
+
   /**
    * 取下载文件绝对路径
    */
