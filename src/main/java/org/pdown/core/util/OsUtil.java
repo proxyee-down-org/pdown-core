@@ -57,6 +57,10 @@ public class OsUtil {
     return OS.indexOf("win") >= 0;
   }
 
+  public static boolean isWindowsXP() {
+    return OS.indexOf("win") >= 0 && OS.indexOf("xp") >= 0;
+  }
+
   public static boolean isMac() {
     return OS.indexOf("mac") >= 0;
   }
